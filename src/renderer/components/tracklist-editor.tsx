@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react';
-import { Plus, Trash2, GripVertical } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import type { CueTrack } from '../../shared/types';
 import { formatTime } from '../lib/time';
 
@@ -40,32 +40,33 @@ export function TracklistEditor({
   );
 
   return (
-    <div className="rounded-lg border border-paper-darker bg-paper-dark/40">
+    <div className="rounded-xl border border-glass-border bg-glass overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-paper-darker px-5 py-3">
-        <span className="font-mono text-[10px] tracking-widest text-ink-lighter uppercase">
+      <div className="flex items-center justify-between border-b border-glass-border px-4 py-3">
+        <span className="font-mono text-[9px] tracking-[0.2em] text-text-faint uppercase">
           Tracklist
         </span>
         <button
           type="button"
           onClick={() => onAddTrack(null)}
-          className="no-drag flex items-center gap-1.5 rounded-md px-2.5 py-1 font-mono text-[10px]
-            tracking-wider text-ink-lighter uppercase transition-colors hover:bg-amber-faint hover:text-amber"
+          className="no-drag flex items-center gap-1.5 rounded-md bg-glass-hover px-2.5 py-1
+            font-mono text-[9px] tracking-[0.15em] text-text-muted uppercase
+            transition-colors hover:bg-accent-bg hover:text-accent-text"
         >
-          <Plus className="size-3" />
-          Add Track
+          <Plus className="size-2.5" strokeWidth={2.5} />
+          Add
         </button>
       </div>
 
       {/* Track list */}
       {sortedTracks.length === 0 ? (
-        <div className="px-5 py-10 text-center">
-          <p className="font-serif text-sm text-ink-lighter italic">
+        <div className="px-4 py-10 text-center">
+          <p className="text-[13px] text-text-muted italic">
             Click the waveform to add track markers, or import a .cue file
           </p>
         </div>
       ) : (
-        <div className="divide-y divide-paper-darker">
+        <div>
           {sortedTracks.map((track) => {
             const idx = getOriginalIndex(track.trackNumber);
             const isActive = track.trackNumber === activeTrackNumber;
@@ -76,23 +77,21 @@ export function TracklistEditor({
             return (
               <div
                 key={track.trackNumber}
-                className={`no-drag group flex items-center gap-3 px-5 py-3 transition-colors ${
-                  isActive ? 'bg-amber-faint' : 'hover:bg-paper-dark'
-                }`}
+                className={`no-drag group flex items-center gap-3 border-b border-[rgba(255,255,255,0.04)]
+                  px-4 py-2.5 transition-colors ${
+                    isActive ? 'bg-accent-glow' : 'hover:bg-glass-hover'
+                  }`}
               >
-                {/* Grip + number */}
-                <div className="flex items-center gap-2">
-                  <GripVertical className="size-3 text-ink-faint opacity-0 group-hover:opacity-100" />
-                  <button
-                    type="button"
-                    onClick={() => onSeek(track.startMs)}
-                    className={`font-mono text-xs tabular-nums ${
-                      isActive ? 'text-amber' : 'text-ink-faint hover:text-amber'
-                    }`}
-                  >
-                    {track.trackNumber.toString().padStart(2, '0')}
-                  </button>
-                </div>
+                {/* Number */}
+                <button
+                  type="button"
+                  onClick={() => onSeek(track.startMs)}
+                  className={`font-mono text-[11px] tabular-nums w-5 text-left ${
+                    isActive ? 'text-accent-muted' : 'text-text-faint hover:text-accent-muted'
+                  }`}
+                >
+                  {track.trackNumber.toString().padStart(2, '0')}
+                </button>
 
                 {/* Title + performer */}
                 <div className="flex min-w-0 flex-1 flex-col gap-0.5">
@@ -101,26 +100,26 @@ export function TracklistEditor({
                     value={track.title}
                     onChange={(e) => onUpdateTrack(idx, { title: e.target.value })}
                     placeholder="Track title"
-                    className="w-full border-none bg-transparent text-sm text-ink outline-none
-                      placeholder:text-ink-faint"
+                    className="w-full border-none bg-transparent text-[13px] text-text-secondary
+                      outline-none placeholder:text-text-ghost"
                   />
                   <input
                     type="text"
                     value={track.performer ?? ''}
                     onChange={(e) => onUpdateTrack(idx, { performer: e.target.value || undefined })}
                     placeholder="Artist"
-                    className="w-full border-none bg-transparent text-[11px] text-ink-lighter
-                      outline-none placeholder:text-ink-faint"
+                    className="w-full border-none bg-transparent text-[11px] text-text-muted
+                      outline-none placeholder:text-text-ghost"
                   />
                 </div>
 
                 {/* Time info */}
                 <div className="flex flex-col items-end gap-0.5">
-                  <span className="font-mono text-[10px] tabular-nums text-ink-lighter">
+                  <span className="font-mono text-[10px] tabular-nums text-text-muted">
                     {formatTime(track.startMs)}
                   </span>
                   {trackDuration > 0 && (
-                    <span className="font-mono text-[10px] tabular-nums text-ink-faint">
+                    <span className="font-mono text-[10px] tabular-nums text-text-ghost">
                       {formatTime(trackDuration)}
                     </span>
                   )}
@@ -130,8 +129,8 @@ export function TracklistEditor({
                 <button
                   type="button"
                   onClick={() => onRemoveTrack(idx)}
-                  className="rounded p-1 text-ink-faint opacity-0 transition-all
-                    hover:bg-red-faint hover:text-red group-hover:opacity-100"
+                  className="rounded p-1 text-text-ghost opacity-0 transition-all
+                    hover:bg-red-bg hover:text-red group-hover:opacity-100"
                 >
                   <Trash2 className="size-3" />
                 </button>

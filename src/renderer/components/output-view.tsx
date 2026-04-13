@@ -1,80 +1,75 @@
-import { FolderOpen, Music, RotateCcw, CheckCircle2, AlertCircle } from 'lucide-react';
+import { FolderOpen, RotateCcw, CheckCircle2, AlertCircle, Music } from 'lucide-react';
 import { mixcut } from '../lib/mixcut-api';
 import type { CutProgress } from '../../shared/types';
 
-interface OutputViewProps {
+interface DoneModalProps {
   progress: CutProgress | null;
   onNewSession: () => void;
 }
 
-export function OutputView({ progress, onNewSession }: OutputViewProps) {
+export function DoneModal({ progress, onNewSession }: DoneModalProps) {
   const isComplete = progress?.stage === 'complete';
   const isError = progress?.stage === 'error';
 
   return (
-    <div className="flex h-full flex-col items-center justify-center px-8">
-      <div className="w-full max-w-md text-center">
-        {/* Status icon */}
-        <div className="mb-6 flex justify-center">
-          {isComplete && (
-            <div className="flex size-16 items-center justify-center rounded-full bg-green-faint">
-              <CheckCircle2 className="size-8 text-green" />
-            </div>
-          )}
-          {isError && (
-            <div className="flex size-16 items-center justify-center rounded-full bg-red-faint">
-              <AlertCircle className="size-8 text-red" />
-            </div>
-          )}
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-overlay">
+      <div className="flex flex-col items-center gap-5 rounded-2xl border border-glass-border-strong
+        bg-glass-card px-14 py-10 shadow-[0_24px_80px_rgba(0,0,0,0.6)]">
+        {/* Icon */}
+        {isComplete && (
+          <div className="flex size-[52px] items-center justify-center rounded-full border border-green-border bg-green-bg">
+            <CheckCircle2 className="size-[22px] text-green" strokeWidth={1.5} />
+          </div>
+        )}
+        {isError && (
+          <div className="flex size-[52px] items-center justify-center rounded-full border border-[rgba(255,100,100,0.15)] bg-red-bg">
+            <AlertCircle className="size-[22px] text-red" strokeWidth={1.5} />
+          </div>
+        )}
+
+        {/* Text */}
+        <div className="flex flex-col items-center gap-1.5">
+          <span className="text-[17px] font-medium text-text">
+            {isComplete ? 'Tracks ready' : 'Something went wrong'}
+          </span>
+          <span className="font-mono text-[11px] text-text-muted">
+            {isComplete && 'All tracks saved to output directory'}
+            {isError && progress.message}
+          </span>
         </div>
 
-        <h2 className="font-serif text-3xl text-ink">
-          {isComplete ? 'Tracks ready' : 'Something went wrong'}
-        </h2>
-
+        {/* Output path */}
         {isComplete && (
-          <p className="mt-2 font-mono text-xs text-ink-lighter">
-            Your tracks have been saved to the output directory
-          </p>
-        )}
-
-        {isError && (
-          <p className="mt-2 font-mono text-xs text-red">{progress.message}</p>
-        )}
-
-        {/* Output directory */}
-        {isComplete && (
-          <div className="mx-auto mt-8 flex items-center justify-center gap-2 rounded-md
-            border border-paper-darker bg-paper-dark px-4 py-2.5">
-            <Music className="size-3.5 text-ink-faint" />
-            <span className="max-w-xs truncate font-mono text-[11px] text-ink-lighter">
+          <div className="flex items-center gap-2 rounded-md border border-glass-border bg-glass px-3.5 py-2">
+            <Music className="size-3 text-text-muted" strokeWidth={1.5} />
+            <span className="max-w-[250px] truncate font-mono text-[10px] text-text-muted">
               {progress.outputDir}
             </span>
           </div>
         )}
 
         {/* Actions */}
-        <div className="mt-8 flex items-center justify-center gap-3">
+        <div className="flex items-center gap-2.5 pt-1">
           {isComplete && (
             <button
               type="button"
               onClick={() => mixcut.openInFinder(progress.outputDir)}
-              className="no-drag flex items-center gap-2 rounded-md bg-ink px-5 py-2.5 font-mono
-                text-xs tracking-wider text-paper uppercase transition-colors hover:bg-ink-light"
+              className="no-drag flex items-center gap-2 rounded-lg border border-accent-border
+                bg-accent-bg px-[18px] py-[9px] text-xs font-medium text-accent-text
+                transition-colors hover:bg-accent-border/30"
             >
-              <FolderOpen className="size-3.5" />
+              <FolderOpen className="size-[13px]" strokeWidth={1.5} />
               Open in Finder
             </button>
           )}
-
           <button
             type="button"
             onClick={onNewSession}
-            className="no-drag flex items-center gap-2 rounded-md border border-paper-darker px-5
-              py-2.5 font-mono text-xs tracking-wider text-ink-lighter uppercase
-              transition-colors hover:border-amber hover:bg-amber-faint hover:text-amber"
+            className="no-drag flex items-center gap-2 rounded-lg border border-glass-border-strong
+              bg-glass px-[18px] py-[9px] text-xs font-medium text-text-secondary
+              transition-colors hover:bg-glass-hover"
           >
-            <RotateCcw className="size-3.5" />
+            <RotateCcw className="size-[13px]" strokeWidth={1.5} />
             New Session
           </button>
         </div>

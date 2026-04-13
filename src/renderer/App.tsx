@@ -1,14 +1,17 @@
 import { useCallback, useMemo, useState } from 'react';
 import { OpenAudio } from './components/open-audio';
 import { TrackWorkspace } from './components/track-workspace';
-import { ProcessingView } from './components/processing-view';
-import { OutputView } from './components/output-view';
+import { ProcessingModal } from './components/processing-view';
+import { DoneModal } from './components/output-view';
 import { useProject } from './hooks/use-project';
 import { useCutProgress } from './hooks/use-cut-progress';
 import { mixcut } from './lib/mixcut-api';
 import type { OverallDetails } from '../shared/cue-builder';
 
 type Step = 'open' | 'edit' | 'processing' | 'done';
+
+const STEP_LABELS = ['Open', 'Edit', 'Process', 'Done'] as const;
+const STEP_KEYS: Step[] = ['open', 'edit', 'processing', 'done'];
 
 export function App() {
   const {
@@ -71,40 +74,49 @@ export function App() {
     setStep('open');
   }, [reset]);
 
-  // Determine actual step based on progress
+  // Derive effective step from progress
   const effectiveStep = useMemo(() => {
-    if (step === 'processing' && progress?.stage === 'complete') return 'done';
-    if (step === 'processing' && progress?.stage === 'error') return 'done';
+    if (step === 'processing' && (progress?.stage === 'complete' || progress?.stage === 'error')) {
+      return 'done';
+    }
     return step;
   }, [step, progress]);
 
+  const showWorkspace = effectiveStep !== 'open';
+  const showProcessingModal = effectiveStep === 'processing';
+  const showDoneModal = effectiveStep === 'done';
+
   return (
     <div className="flex h-full flex-col">
-      {/* Title bar spacer for traffic lights */}
+      {/* Title bar spacer */}
       <div className="h-11 shrink-0" />
 
-      {/* Step indicator */}
-      {effectiveStep !== 'open' && (
-        <div className="flex shrink-0 items-center gap-1 px-5 pb-1">
-          {(['open', 'edit', 'processing', 'done'] as const).map((s, i) => {
-            const labels = ['Open', 'Edit', 'Process', 'Done'];
-            const stepIndex = ['open', 'edit', 'processing', 'done'].indexOf(effectiveStep);
+      {/* Step indicator — only visible when past the open screen */}
+      {showWorkspace && (
+        <div className="flex shrink-0 items-center gap-1.5 px-6 pb-1">
+          {STEP_KEYS.map((s, i) => {
+            const stepIndex = STEP_KEYS.indexOf(effectiveStep);
             const isActive = i === stepIndex;
             const isPast = i < stepIndex;
             return (
               <div key={s} className="flex items-center">
-                {i > 0 && <div className="mx-2 h-px w-4 bg-paper-darker" />}
-                <span
-                  className={`font-mono text-[9px] tracking-widest uppercase ${
-                    isActive
-                      ? 'text-amber'
-                      : isPast
-                        ? 'text-ink-lighter'
-                        : 'text-ink-faint'
-                  }`}
-                >
-                  {labels[i]}
-                </span>
+                {i > 0 && (
+                  <span className="mx-1.5 font-mono text-[9px] text-text-ghost">—</span>
+                )}
+                <div className="flex items-center gap-1.5">
+                  <div
+                    className={`size-[5px] rounded-full ${
+                      isActive ? 'bg-accent' : isPast ? 'bg-accent-muted/50' : 'bg-text-ghost'
+                    }`}
+                  />
+                  <span
+                    className={`font-mono text-[9px] tracking-[0.15em] uppercase ${
+                      isActive ? 'text-accent-text' : isPast ? 'text-text-muted' : 'text-text-faint'
+                    }`}
+                  >
+                    {STEP_LABELS[i]}
+                  </span>
+                </div>
               </div>
             );
           })}
@@ -120,7 +132,7 @@ export function App() {
           />
         )}
 
-        {effectiveStep === 'edit' && project && (
+        {showWorkspace && project && (
           <TrackWorkspace
             audioPath={project.audioPath}
             audioName={project.name}
@@ -133,15 +145,14 @@ export function App() {
             onArtworkChange={setArtworkPath}
             onOutputDirChange={setOutputDir}
             onCutTracks={handleCutTracks}
+            disabled={showProcessingModal || showDoneModal}
           />
         )}
-
-        {effectiveStep === 'processing' && <ProcessingView progress={progress} />}
-
-        {effectiveStep === 'done' && (
-          <OutputView progress={progress} onNewSession={handleNewSession} />
-        )}
       </div>
+
+      {/* Modal overlays */}
+      {showProcessingModal && <ProcessingModal progress={progress} />}
+      {showDoneModal && <DoneModal progress={progress} onNewSession={handleNewSession} />}
     </div>
   );
 }

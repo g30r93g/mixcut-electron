@@ -56,10 +56,10 @@ export const TrackWaveform = forwardRef<TrackWaveformHandle, TrackWaveformProps>
 
       const instance = WaveSurfer.create({
         container,
-        height: 140,
-        waveColor: 'rgba(138, 126, 112, 0.35)',
-        progressColor: '#c47a2a',
-        cursorColor: '#c47a2a',
+        height: 120,
+        waveColor: 'rgba(120, 160, 255, 0.35)',
+        progressColor: 'rgba(120, 160, 255, 0.6)',
+        cursorColor: 'rgba(120, 160, 255, 0.8)',
         cursorWidth: 1,
         normalize: true,
         barWidth: 2,
@@ -70,8 +70,8 @@ export const TrackWaveform = forwardRef<TrackWaveformHandle, TrackWaveformProps>
           TimelinePlugin.create({
             style: {
               fontSize: '10px',
-              fontFamily: 'DM Mono, monospace',
-              color: '#8a7e70',
+              fontFamily: 'JetBrains Mono, monospace',
+              color: 'rgba(255, 255, 255, 0.2)',
             },
           }),
         ],
@@ -141,34 +141,38 @@ export const TrackWaveform = forwardRef<TrackWaveformHandle, TrackWaveformProps>
     }, []);
 
     return (
-      <div className="rounded-lg border border-paper-darker bg-paper-dark/40 p-5">
+      <div className="rounded-xl border border-glass-border bg-glass p-5">
         {/* Waveform */}
         <div className="no-drag relative mb-10">
-          <div ref={containerRef} className="relative h-[140px] w-full" />
+          <div ref={containerRef} className="relative h-[120px] w-full" />
         </div>
 
         {/* Controls */}
         <div className="no-drag flex items-center justify-between">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={togglePlayback}
               disabled={!isReady}
-              className="flex size-9 items-center justify-center rounded-full border border-paper-darker
-                bg-paper transition-colors hover:border-amber hover:bg-amber-faint
+              className="flex size-8 items-center justify-center rounded-full border border-glass-border
+                bg-glass transition-colors hover:border-glass-border-strong hover:bg-glass-hover
                 disabled:cursor-not-allowed disabled:opacity-40"
             >
-              {isPlaying ? <Pause className="size-3.5" /> : <Play className="ml-0.5 size-3.5" />}
+              {isPlaying ? (
+                <Pause className="size-3" fill="rgba(255,255,255,0.8)" stroke="none" />
+              ) : (
+                <Play className="ml-0.5 size-3" fill="rgba(255,255,255,0.8)" stroke="none" />
+              )}
             </button>
-            <span className="font-mono text-xs text-ink-lighter">
-              <span className="text-ink">{formatTime(currentMs)}</span>
-              <span className="mx-1 text-ink-faint">/</span>
+            <span className="font-mono text-[11px] text-text-muted">
+              <span className="text-text-secondary">{formatTime(currentMs)}</span>
+              <span className="mx-1 text-text-ghost">/</span>
               {formatTime(durationMs)}
             </span>
           </div>
 
           <div className="flex items-center gap-2">
-            <ZoomOut className="size-3 text-ink-faint" />
+            <ZoomOut className="size-3 text-text-faint" strokeWidth={1.5} />
             <input
               type="range"
               min={40}
@@ -177,12 +181,12 @@ export const TrackWaveform = forwardRef<TrackWaveformHandle, TrackWaveformProps>
               value={minPxPerSec}
               onChange={handleZoomChange}
               disabled={!isReady}
-              className="no-drag h-1 w-24 cursor-pointer appearance-none rounded-full bg-paper-darker
-                accent-amber disabled:cursor-not-allowed disabled:opacity-40
-                [&::-webkit-slider-thumb]:size-3 [&::-webkit-slider-thumb]:appearance-none
-                [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-amber"
+              className="no-drag h-[3px] w-20 cursor-pointer appearance-none rounded-full
+                bg-[rgba(255,255,255,0.08)] disabled:cursor-not-allowed disabled:opacity-40
+                [&::-webkit-slider-thumb]:size-2.5 [&::-webkit-slider-thumb]:appearance-none
+                [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-accent-muted"
             />
-            <ZoomIn className="size-3 text-ink-faint" />
+            <ZoomIn className="size-3 text-text-faint" strokeWidth={1.5} />
           </div>
         </div>
       </div>

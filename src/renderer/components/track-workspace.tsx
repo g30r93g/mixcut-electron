@@ -6,7 +6,6 @@ import { MetadataEditor } from './metadata-editor';
 import { mixcut } from '../lib/mixcut-api';
 import { parseCue } from '../../shared/parse-cue';
 import type { CueTrack, AlbumMetadata } from '../../shared/types';
-import type { OverallDetails } from '../../shared/cue-builder';
 
 interface TrackWorkspaceProps {
   audioPath: string;
@@ -20,6 +19,7 @@ interface TrackWorkspaceProps {
   onArtworkChange: (path: string | undefined) => void;
   onOutputDirChange: (dir: string) => void;
   onCutTracks: () => void;
+  disabled?: boolean;
 }
 
 export function TrackWorkspace({
@@ -34,6 +34,7 @@ export function TrackWorkspace({
   onArtworkChange,
   onOutputDirChange,
   onCutTracks,
+  disabled,
 }: TrackWorkspaceProps) {
   const waveformRef = useRef<TrackWaveformHandle | null>(null);
   const [currentMs, setCurrentMs] = useState(0);
@@ -44,12 +45,7 @@ export function TrackWorkspace({
     [tracks],
   );
 
-  const handleWaveformClick = useCallback(
-    (ms: number) => {
-      // Don't auto-add on click — user uses "Add Track" button or imports CUE
-    },
-    [],
-  );
+  const handleWaveformClick = useCallback(() => {}, []);
 
   const handleAddTrack = useCallback(
     (startMs: number | null) => {
@@ -105,32 +101,33 @@ export function TrackWorkspace({
         year: parsed.releaseYear || metadata.year,
       });
     } catch {
-      // Parsing failed — could show an error but keeping it simple
+      // parsing failed
     }
   }, [metadata, onUpdateTracks, onUpdateMetadata]);
 
-  const canCut = tracks.length > 0;
+  const canCut = tracks.length > 0 && !disabled;
 
   return (
-    <div className="flex h-full flex-col gap-4 overflow-hidden p-5">
-      {/* Top: audio file name */}
+    <div className="flex h-full flex-col gap-4 overflow-hidden p-6 pt-4">
+      {/* Top bar */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="font-serif text-xl text-ink">{metadata.title || audioName}</h2>
+          <h2 className="text-sm font-semibold text-text">{metadata.title || audioName}</h2>
           {metadata.performer && (
-            <p className="font-mono text-[10px] text-ink-lighter">{metadata.performer}</p>
+            <p className="font-mono text-[10px] text-text-muted">{metadata.performer}</p>
           )}
         </div>
         <button
           type="button"
           onClick={onCutTracks}
           disabled={!canCut}
-          className="no-drag flex items-center gap-2 rounded-md bg-ink px-4 py-2 font-mono text-xs
-            tracking-wider text-paper uppercase transition-all hover:bg-ink-light
+          className="no-drag flex items-center gap-2 rounded-lg border border-accent-border
+            bg-accent-bg px-4 py-2 font-mono text-xs text-accent-text
+            transition-all hover:bg-accent-border/30
             disabled:cursor-not-allowed disabled:opacity-30"
         >
-          <Scissors className="size-3.5" />
-          Cut Tracks
+          <Scissors className="size-3.5" strokeWidth={1.5} />
+          <span className="font-medium">Cut Tracks</span>
         </button>
       </div>
 
@@ -145,8 +142,8 @@ export function TrackWorkspace({
         durationMs={durationMs}
       />
 
-      {/* Bottom: tracklist + metadata side by side */}
-      <div className="grid min-h-0 flex-1 grid-cols-[1fr_340px] gap-4 overflow-hidden">
+      {/* Bottom: tracklist + metadata */}
+      <div className="grid min-h-0 flex-1 grid-cols-[1fr_320px] gap-4 overflow-hidden">
         <div className="overflow-y-auto">
           <TracklistEditor
             tracks={tracks}
