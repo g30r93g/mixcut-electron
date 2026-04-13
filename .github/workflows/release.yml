@@ -33,7 +33,9 @@ jobs:
           make install
           git clone https://github.com/nu774/m4acut.git /tmp/m4acut
           cd /tmp/m4acut
-          gcc -O2 -o m4acut m4acut.c -I/tmp/l-smash-build/include -L/tmp/l-smash-build/lib -llsmash
+          autoreconf -i
+          ./configure CPPFLAGS="-I/tmp/l-smash-build/include" LDFLAGS="-L/tmp/l-smash-build/lib"
+          make -j$(sysctl -n hw.ncpu)
           cp m4acut $GITHUB_WORKSPACE/resources/bin/darwin/m4acut
           chmod +x $GITHUB_WORKSPACE/resources/bin/darwin/m4acut
 
