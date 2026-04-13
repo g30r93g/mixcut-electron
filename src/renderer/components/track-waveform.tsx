@@ -16,7 +16,7 @@ import type { CueTrack } from '../../shared/types';
 import { mixcut } from '../lib/mixcut-api';
 import { formatTime } from '../lib/time';
 
-const MARKER_COLOR = 'rgba(255, 255, 255, 0.3)';
+const MARKER_COLOR = 'rgba(255, 80, 80, 0.7)';
 
 export type TrackWaveformHandle = {
   seekTo: (ms: number) => void;
