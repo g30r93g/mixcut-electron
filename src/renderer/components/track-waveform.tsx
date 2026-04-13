@@ -1,4 +1,4 @@
-import { Pause, Play, ZoomIn, ZoomOut } from 'lucide-react';
+import { Pause, Play, ZoomIn, ZoomOut, SkipBack, SkipForward } from 'lucide-react';
 import {
   forwardRef,
   useCallback,
@@ -177,6 +177,15 @@ export const TrackWaveform = forwardRef<TrackWaveformHandle, TrackWaveformProps>
       instance.zoom(minPxPerSec);
     }, [minPxPerSec, isReady]);
 
+    const skip = useCallback((seconds: number) => {
+      const instance = wavesurferRef.current;
+      if (!instance || !isReady) return;
+      const dur = instance.getDuration();
+      const newTime = Math.max(0, Math.min(instance.getCurrentTime() + seconds, dur));
+      instance.setTime(newTime);
+      onTimeUpdate(newTime * 1000);
+    }, [isReady, onTimeUpdate]);
+
     const handleZoomChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
       setMinPxPerSec(Number(e.target.value));
     }, []);
@@ -208,6 +217,39 @@ export const TrackWaveform = forwardRef<TrackWaveformHandle, TrackWaveformProps>
               <span className="mx-1 text-text-faint">/</span>
               {formatTime(durationMs)}
             </span>
+
+            <div className="flex items-center gap-0.5">
+              {[30, 15, 5].map((s) => (
+                <button
+                  key={`back-${s}`}
+                  type="button"
+                  onClick={() => skip(-s)}
+                  disabled={!isReady}
+                  title={`Back ${s}s`}
+                  className="relative flex size-7 items-center justify-center rounded-md
+                    text-text-faint transition-colors hover:bg-surface-light hover:text-text-secondary
+                    disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <SkipBack className="size-3" strokeWidth={1.5} />
+                  <span className="absolute -bottom-0.5 font-mono text-[7px]">{s}</span>
+                </button>
+              ))}
+              {[5, 15, 30].map((s) => (
+                <button
+                  key={`fwd-${s}`}
+                  type="button"
+                  onClick={() => skip(s)}
+                  disabled={!isReady}
+                  title={`Forward ${s}s`}
+                  className="relative flex size-7 items-center justify-center rounded-md
+                    text-text-faint transition-colors hover:bg-surface-light hover:text-text-secondary
+                    disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <SkipForward className="size-3" strokeWidth={1.5} />
+                  <span className="absolute -bottom-0.5 font-mono text-[7px]">{s}</span>
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="flex items-center gap-2">
