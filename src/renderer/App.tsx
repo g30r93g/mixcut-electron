@@ -10,8 +10,6 @@ import { mixcut } from './lib/mixcut-api';
 
 type Step = 'open' | 'edit' | 'processing' | 'done';
 
-const STEP_LABELS = ['Open', 'Edit', 'Process', 'Done'] as const;
-const STEP_KEYS: Step[] = ['open', 'edit', 'processing', 'done'];
 
 export function App() {
   const {
@@ -90,38 +88,6 @@ export function App() {
     <div className="flex h-full flex-col">
       {/* Title bar spacer */}
       <div className="h-11 shrink-0" />
-
-      {/* Step indicator — only visible when past the open screen */}
-      {showWorkspace && (
-        <div className="flex shrink-0 items-center gap-1.5 px-6 pb-1">
-          {STEP_KEYS.map((s, i) => {
-            const stepIndex = STEP_KEYS.indexOf(effectiveStep);
-            const isActive = i === stepIndex;
-            const isPast = i < stepIndex;
-            return (
-              <div key={s} className="flex items-center">
-                {i > 0 && (
-                  <span className="mx-1.5 font-mono text-[9px] text-text-faint">—</span>
-                )}
-                <div className="flex items-center gap-1.5">
-                  <div
-                    className={`size-[5px] rounded-full ${
-                      isActive ? 'bg-accent' : isPast ? 'bg-accent-dim' : 'bg-text-faint'
-                    }`}
-                  />
-                  <span
-                    className={`font-mono text-[9px] tracking-[0.15em] uppercase ${
-                      isActive ? 'text-accent' : isPast ? 'text-text-muted' : 'text-text-faint'
-                    }`}
-                  >
-                    {STEP_LABELS[i]}
-                  </span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
 
       {/* Content */}
       <div className="min-h-0 flex-1">
