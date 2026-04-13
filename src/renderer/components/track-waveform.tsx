@@ -17,15 +17,7 @@ import type { CueTrack } from '../../shared/types';
 
 const TRACK_COLORS = [
   '#78a0ff',
-  '#ff78a0',
-  '#78ffa0',
-  '#ffa078',
   '#a078ff',
-  '#78fff0',
-  '#ffdb78',
-  '#ff7878',
-  '#78c8ff',
-  '#c878ff',
 ];
 
 const DEFAULT_COLOR = 'rgba(120, 160, 255, 0.5)';
