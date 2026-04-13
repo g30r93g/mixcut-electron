@@ -28,13 +28,13 @@ jobs:
           brew install automake libtool
           git clone https://github.com/l-smash/l-smash.git /tmp/l-smash
           cd /tmp/l-smash
-          ./configure --prefix=/tmp/l-smash-build
+          ./configure
           make -j$(sysctl -n hw.ncpu)
-          make install
+          sudo make install
           git clone https://github.com/nu774/m4acut.git /tmp/m4acut
           cd /tmp/m4acut
           autoreconf -fi
-          ./configure CPPFLAGS="-I/tmp/l-smash-build/include" LDFLAGS="-L/tmp/l-smash-build/lib" LIBS="-liconv"
+          ./configure
           make -j$(sysctl -n hw.ncpu)
           cp m4acut $GITHUB_WORKSPACE/resources/bin/darwin/m4acut
           chmod +x $GITHUB_WORKSPACE/resources/bin/darwin/m4acut
