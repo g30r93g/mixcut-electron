@@ -1,12 +1,12 @@
 import { useCallback, useMemo, useState } from 'react';
-import { OpenAudio } from './components/open-audio';
-import { TrackWorkspace } from './components/track-workspace';
-import { ProcessingModal } from './components/processing-view';
-import { DoneModal } from './components/output-view';
-import { useProject } from './hooks/use-project';
-import { useCutProgress } from './hooks/use-cut-progress';
-import { mixcut } from './lib/mixcut-api';
 import type { OverallDetails } from '../shared/cue-builder';
+import { OpenAudio } from './components/open-audio';
+import { DoneModal } from './components/output-view';
+import { ProcessingModal } from './components/processing-view';
+import { TrackWorkspace } from './components/track-workspace';
+import { useCutProgress } from './hooks/use-cut-progress';
+import { useProject } from './hooks/use-project';
+import { mixcut } from './lib/mixcut-api';
 
 type Step = 'open' | 'edit' | 'processing' | 'done';
 
