@@ -142,7 +142,7 @@ export const TrackWaveform = forwardRef<TrackWaveformHandle, TrackWaveformProps>
 
     return (
       <div className="rounded-xl border border-border bg-surface p-5">
-        <div className="no-drag relative mb-10">
+        <div className="waveform-wrapper no-drag relative mb-10">
           <div ref={containerRef} className="relative h-[120px] w-full" />
         </div>
 

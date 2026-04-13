@@ -62,3 +62,8 @@ label, .no-drag {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-text-faint);
 }
+
+/* Hide scrollbar on WaveSurfer waveform */
+.waveform-wrapper div::-webkit-scrollbar {
+  display: none;
+}
