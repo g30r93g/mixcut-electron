@@ -1,1 +1,79 @@
 @import 'tailwindcss';
+
+@font-face {
+  font-family: 'Instrument Serif';
+  src: url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap');
+}
+
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap');
+
+@theme {
+  --color-paper: #f5f0e8;
+  --color-paper-dark: #ebe4d8;
+  --color-paper-darker: #d9d0c0;
+  --color-ink: #1a1612;
+  --color-ink-light: #4a4238;
+  --color-ink-lighter: #8a7e70;
+  --color-ink-faint: #b8ad9e;
+  --color-amber: #c47a2a;
+  --color-amber-light: #e8a84c;
+  --color-amber-faint: rgba(196, 122, 42, 0.12);
+  --color-red: #b84233;
+  --color-red-faint: rgba(184, 66, 51, 0.1);
+  --color-green: #4a7c59;
+  --color-green-faint: rgba(74, 124, 89, 0.1);
+
+  --font-serif: 'Instrument Serif', 'Georgia', serif;
+  --font-mono: 'DM Mono', 'Menlo', monospace;
+  --font-sans: 'DM Sans', system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-app-region: drag;
+}
+
+/* Make interactive elements non-draggable */
+button, input, textarea, select, a, [role="button"],
+label, .no-drag {
+  -webkit-app-region: no-drag;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-ink-faint);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-ink-lighter);
+}
+
+/* WaveSurfer overrides */
+.wavesurfer-container {
+  -webkit-app-region: no-drag;
+}
