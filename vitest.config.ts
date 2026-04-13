@@ -1,3 +1,4 @@
+import path from 'path';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
@@ -6,7 +7,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@shared': '/src/shared',
+      '@shared': path.resolve(__dirname, 'src/shared'),
     },
   },
 });
