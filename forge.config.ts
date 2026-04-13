@@ -11,6 +11,7 @@ import { FuseV1Options, FuseVersion } from '@electron/fuses';
 const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
+    icon: 'resources/icon',
     extraResource: ['resources/bin'],
   },
   rebuildConfig: {},
@@ -20,6 +21,7 @@ const config: ForgeConfig = {
     new MakerRpm({}),
     new MakerDeb({}),
     new MakerDMG({
+      icon: 'resources/icon.icns',
       contents: [
         { x: 180, y: 170, type: 'file', path: '' },
         { x: 480, y: 170, type: 'link', path: '/Applications' },
