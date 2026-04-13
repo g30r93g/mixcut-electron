@@ -6,12 +6,27 @@ import {
   useCallback,
   useEffect,
   useImperativeHandle,
+  useMemo,
   useRef,
   useState,
   type ChangeEvent,
 } from 'react';
 import { mixcut } from '../lib/mixcut-api';
 import { formatTime } from '../lib/time';
+import type { CueTrack } from '../../shared/types';
+
+const TRACK_COLORS = [
+  '#78a0ff', // blue
+  '#ff78a0', // pink
+  '#78ffa0', // green
+  '#ffa078', // orange
+  '#a078ff', // purple
+  '#78fff0', // cyan
+  '#ffdb78', // yellow
+  '#ff7878', // red
+  '#78c8ff', // sky
+  '#c878ff', // violet
+];
 
 export type TrackWaveformHandle = {
   seekTo: (ms: number) => void;
@@ -24,16 +39,23 @@ interface TrackWaveformProps {
   onWaveformClick?: (ms: number) => void;
   currentMs: number;
   durationMs: number;
+  tracks: CueTrack[];
+  onSeek: (ms: number) => void;
 }
 
 export const TrackWaveform = forwardRef<TrackWaveformHandle, TrackWaveformProps>(
-  ({ audioPath, onDurationChange, onTimeUpdate, onWaveformClick, currentMs, durationMs }, ref) => {
+  ({ audioPath, onDurationChange, onTimeUpdate, onWaveformClick, currentMs, durationMs, tracks, onSeek }, ref) => {
     const containerRef = useRef<HTMLDivElement | null>(null);
     const wavesurferRef = useRef<WaveSurfer | null>(null);
     const [isReady, setIsReady] = useState(false);
     const [isPlaying, setIsPlaying] = useState(false);
     const [minPxPerSec, setMinPxPerSec] = useState(120);
     const minPxPerSecRef = useRef(minPxPerSec);
+
+    const sortedTracks = useMemo(
+      () => [...tracks].sort((a, b) => a.startMs - b.startMs),
+      [tracks],
+    );
 
     useImperativeHandle(
       ref,
@@ -140,12 +162,65 @@ export const TrackWaveform = forwardRef<TrackWaveformHandle, TrackWaveformProps>
       setMinPxPerSec(Number(e.target.value));
     }, []);
 
+    const handleMinimapClick = useCallback(
+      (e: React.MouseEvent<HTMLDivElement>) => {
+        if (durationMs <= 0) return;
+        const rect = e.currentTarget.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const pct = x / rect.width;
+        const ms = pct * durationMs;
+        onSeek(ms);
+      },
+      [durationMs, onSeek],
+    );
+
+    const playheadPct = durationMs > 0 ? (currentMs / durationMs) * 100 : 0;
+
     return (
       <div className="rounded-xl border border-border bg-surface p-5">
-        <div className="waveform-wrapper no-drag relative mb-10">
+        {/* Waveform */}
+        <div className="waveform-wrapper no-drag relative mb-3">
           <div ref={containerRef} className="relative h-[120px] w-full" />
         </div>
 
+        {/* Minimap */}
+        {durationMs > 0 && sortedTracks.length > 0 && (
+          <div
+            className="no-drag relative mb-6 h-3 cursor-pointer overflow-hidden rounded-sm"
+            onClick={handleMinimapClick}
+            style={{ background: 'rgba(255,255,255,0.04)' }}
+          >
+            {sortedTracks.map((track, i) => {
+              const nextStart = sortedTracks[i + 1]?.startMs ?? durationMs;
+              const leftPct = (track.startMs / durationMs) * 100;
+              const widthPct = ((nextStart - track.startMs) / durationMs) * 100;
+              const color = TRACK_COLORS[i % TRACK_COLORS.length];
+              return (
+                <div
+                  key={track.trackNumber}
+                  className="absolute top-0 h-full transition-opacity hover:opacity-100"
+                  style={{
+                    left: `${leftPct}%`,
+                    width: `${widthPct}%`,
+                    backgroundColor: color,
+                    opacity: 0.35,
+                  }}
+                  title={`${track.trackNumber.toString().padStart(2, '0')} — ${track.title}`}
+                />
+              );
+            })}
+            {/* Playhead */}
+            <div
+              className="absolute top-0 h-full w-px"
+              style={{
+                left: `${playheadPct}%`,
+                backgroundColor: 'rgba(255,255,255,0.8)',
+              }}
+            />
+          </div>
+        )}
+
+        {/* Controls */}
         <div className="no-drag flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button

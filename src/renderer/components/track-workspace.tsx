@@ -152,6 +152,8 @@ export function TrackWorkspace({
         onWaveformClick={handleWaveformClick}
         currentMs={currentMs}
         durationMs={durationMs}
+        tracks={tracks}
+        onSeek={handleSeek}
       />
 
       {/* Bottom: tracklist + metadata */}
