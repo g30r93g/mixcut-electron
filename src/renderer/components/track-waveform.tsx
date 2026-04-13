@@ -130,7 +130,9 @@ export const TrackWaveform = forwardRef<TrackWaveformHandle, TrackWaveformProps>
           const data = peaks[0];
           if (!data) return;
 
-          const dur = durationMsRef.current;
+          // Get duration from the wavesurfer instance directly, falling back to ref
+          const wsDur = wavesurferRef.current?.getDuration() ?? 0;
+          const dur = wsDur > 0 ? wsDur * 1000 : durationMsRef.current;
           const sorted = tracksRef.current;
 
           ctx.clearRect(0, 0, width, height);
