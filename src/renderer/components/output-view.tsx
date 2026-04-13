@@ -12,17 +12,17 @@ export function DoneModal({ progress, onNewSession }: DoneModalProps) {
   const isError = progress?.stage === 'error';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-overlay">
-      <div className="flex flex-col items-center gap-5 rounded-2xl border border-glass-border-strong
-        bg-glass-card px-14 py-10 shadow-[0_24px_80px_rgba(0,0,0,0.6)]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
+      <div className="flex flex-col items-center gap-5 rounded-2xl border border-border-strong
+        bg-surface px-14 py-10 shadow-2xl">
         {/* Icon */}
         {isComplete && (
-          <div className="flex size-[52px] items-center justify-center rounded-full border border-green-border bg-green-bg">
+          <div className="flex size-[52px] items-center justify-center rounded-full border border-green/20 bg-green/8">
             <CheckCircle2 className="size-[22px] text-green" strokeWidth={1.5} />
           </div>
         )}
         {isError && (
-          <div className="flex size-[52px] items-center justify-center rounded-full border border-[rgba(255,100,100,0.15)] bg-red-bg">
+          <div className="flex size-[52px] items-center justify-center rounded-full border border-red/20 bg-red/8">
             <AlertCircle className="size-[22px] text-red" strokeWidth={1.5} />
           </div>
         )}
@@ -40,7 +40,7 @@ export function DoneModal({ progress, onNewSession }: DoneModalProps) {
 
         {/* Output path */}
         {isComplete && (
-          <div className="flex items-center gap-2 rounded-md border border-glass-border bg-glass px-3.5 py-2">
+          <div className="flex items-center gap-2 rounded-md border border-border bg-surface-light px-3.5 py-2">
             <Music className="size-3 text-text-muted" strokeWidth={1.5} />
             <span className="max-w-[250px] truncate font-mono text-[10px] text-text-muted">
               {progress.outputDir}
@@ -54,9 +54,9 @@ export function DoneModal({ progress, onNewSession }: DoneModalProps) {
             <button
               type="button"
               onClick={() => mixcut.openInFinder(progress.outputDir)}
-              className="no-drag flex items-center gap-2 rounded-lg border border-accent-border
-                bg-accent-bg px-[18px] py-[9px] text-xs font-medium text-accent-text
-                transition-colors hover:bg-accent-border/30"
+              className="no-drag flex items-center gap-2 rounded-lg border border-accent/25
+                bg-accent/10 px-[18px] py-[9px] text-xs font-medium text-accent
+                transition-colors hover:bg-accent/20"
             >
               <FolderOpen className="size-[13px]" strokeWidth={1.5} />
               Open in Finder
@@ -65,9 +65,9 @@ export function DoneModal({ progress, onNewSession }: DoneModalProps) {
           <button
             type="button"
             onClick={onNewSession}
-            className="no-drag flex items-center gap-2 rounded-lg border border-glass-border-strong
-              bg-glass px-[18px] py-[9px] text-xs font-medium text-text-secondary
-              transition-colors hover:bg-glass-hover"
+            className="no-drag flex items-center gap-2 rounded-lg border border-border-strong
+              bg-surface-light px-[18px] py-[9px] text-xs font-medium text-text-secondary
+              transition-colors hover:bg-border"
           >
             <RotateCcw className="size-[13px]" strokeWidth={1.5} />
             New Session

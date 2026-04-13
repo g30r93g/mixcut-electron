@@ -101,17 +101,17 @@ export function App() {
             return (
               <div key={s} className="flex items-center">
                 {i > 0 && (
-                  <span className="mx-1.5 font-mono text-[9px] text-text-ghost">—</span>
+                  <span className="mx-1.5 font-mono text-[9px] text-text-faint">—</span>
                 )}
                 <div className="flex items-center gap-1.5">
                   <div
                     className={`size-[5px] rounded-full ${
-                      isActive ? 'bg-accent' : isPast ? 'bg-accent-muted/50' : 'bg-text-ghost'
+                      isActive ? 'bg-accent' : isPast ? 'bg-accent-dim' : 'bg-text-faint'
                     }`}
                   />
                   <span
                     className={`font-mono text-[9px] tracking-[0.15em] uppercase ${
-                      isActive ? 'text-accent-text' : isPast ? 'text-text-muted' : 'text-text-faint'
+                      isActive ? 'text-accent' : isPast ? 'text-text-muted' : 'text-text-faint'
                     }`}
                   >
                     {STEP_LABELS[i]}

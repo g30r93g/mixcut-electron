@@ -60,7 +60,7 @@ export function OpenAudio({ onAudioSelected, onProjectSelected }: OpenAudioProps
       <div className="w-full max-w-[440px]">
         {/* Header */}
         <div className="mb-8 text-center">
-          <h1 className="text-[28px] font-semibold tracking-tight text-text" style={{ letterSpacing: '-0.03em' }}>
+          <h1 className="text-[28px] font-semibold tracking-tight text-text">
             mixcut
           </h1>
           <p className="mt-1.5 font-mono text-[10px] tracking-[0.25em] text-text-muted uppercase">
@@ -76,18 +76,18 @@ export function OpenAudio({ onAudioSelected, onProjectSelected }: OpenAudioProps
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           className={`
-            no-drag group w-full cursor-pointer rounded-2xl border px-9 py-11
-            text-center transition-all duration-200
+            no-drag group flex w-full cursor-pointer flex-col items-center rounded-2xl
+            border px-9 py-11 text-center transition-all duration-200
             ${
               isDragOver
-                ? 'border-accent-border bg-accent-bg'
-                : 'border-glass-border bg-glass hover:border-glass-border-strong hover:bg-glass-hover'
+                ? 'border-accent/25 bg-accent/10'
+                : 'border-border bg-surface hover:border-border-strong hover:bg-surface-light'
             }
           `}
         >
           <Disc3
-            className={`mx-auto mb-4 size-9 transition-colors ${
-              isDragOver ? 'text-accent-muted' : 'text-text-muted group-hover:text-accent-muted'
+            className={`mb-4 size-9 transition-colors ${
+              isDragOver ? 'text-accent' : 'text-text-muted group-hover:text-accent'
             }`}
             strokeWidth={1.5}
           />
@@ -107,15 +107,14 @@ export function OpenAudio({ onAudioSelected, onProjectSelected }: OpenAudioProps
               </span>
             </div>
             <div className="flex flex-col gap-1">
-              {recentProjects.slice(0, 5).map((project) => (
+              {recentProjects.slice(0, 5).map((project, i) => (
                 <button
                   key={project.id}
                   type="button"
                   onClick={() => onProjectSelected(project.id)}
-                  className="no-drag group flex items-center justify-between rounded-[10px]
-                    border border-transparent px-3.5 py-2.5 text-left transition-colors
-                    first:border-glass-border first:bg-glass
-                    hover:bg-glass-hover"
+                  className={`no-drag flex items-center justify-between rounded-[10px]
+                    px-3.5 py-2.5 text-left transition-colors hover:bg-surface-light
+                    ${i === 0 ? 'border border-border bg-surface' : ''}`}
                 >
                   <span className="text-[13px] text-text-secondary">{project.name}</span>
                   <span className="font-mono text-[10px] text-text-faint">

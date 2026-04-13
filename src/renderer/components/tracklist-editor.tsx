@@ -40,28 +40,27 @@ export function TracklistEditor({
   );
 
   return (
-    <div className="rounded-xl border border-glass-border bg-glass overflow-hidden">
+    <div className="overflow-hidden rounded-xl border border-border bg-surface">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-glass-border px-4 py-3">
+      <div className="flex items-center justify-between border-b border-border px-4 py-3">
         <span className="font-mono text-[9px] tracking-[0.2em] text-text-faint uppercase">
           Tracklist
         </span>
         <button
           type="button"
           onClick={() => onAddTrack(null)}
-          className="no-drag flex items-center gap-1.5 rounded-md bg-glass-hover px-2.5 py-1
+          className="no-drag flex items-center gap-1.5 rounded-md bg-surface-light px-2.5 py-1
             font-mono text-[9px] tracking-[0.15em] text-text-muted uppercase
-            transition-colors hover:bg-accent-bg hover:text-accent-text"
+            transition-colors hover:bg-accent/10 hover:text-accent"
         >
           <Plus className="size-2.5" strokeWidth={2.5} />
           Add
         </button>
       </div>
 
-      {/* Track list */}
       {sortedTracks.length === 0 ? (
         <div className="px-4 py-10 text-center">
-          <p className="text-[13px] text-text-muted italic">
+          <p className="text-[13px] italic text-text-muted">
             Click the waveform to add track markers, or import a .cue file
           </p>
         </div>
@@ -77,23 +76,19 @@ export function TracklistEditor({
             return (
               <div
                 key={track.trackNumber}
-                className={`no-drag group flex items-center gap-3 border-b border-[rgba(255,255,255,0.04)]
-                  px-4 py-2.5 transition-colors ${
-                    isActive ? 'bg-accent-glow' : 'hover:bg-glass-hover'
-                  }`}
+                className={`no-drag group flex items-center gap-3 border-b border-border/50
+                  px-4 py-2.5 transition-colors
+                  ${isActive ? 'bg-accent/5' : 'hover:bg-surface-light'}`}
               >
-                {/* Number */}
                 <button
                   type="button"
                   onClick={() => onSeek(track.startMs)}
-                  className={`font-mono text-[11px] tabular-nums w-5 text-left ${
-                    isActive ? 'text-accent-muted' : 'text-text-faint hover:text-accent-muted'
-                  }`}
+                  className={`w-5 text-left font-mono text-[11px] tabular-nums
+                    ${isActive ? 'text-accent' : 'text-text-faint hover:text-accent'}`}
                 >
                   {track.trackNumber.toString().padStart(2, '0')}
                 </button>
 
-                {/* Title + performer */}
                 <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                   <input
                     type="text"
@@ -101,7 +96,7 @@ export function TracklistEditor({
                     onChange={(e) => onUpdateTrack(idx, { title: e.target.value })}
                     placeholder="Track title"
                     className="w-full border-none bg-transparent text-[13px] text-text-secondary
-                      outline-none placeholder:text-text-ghost"
+                      outline-none placeholder:text-text-faint"
                   />
                   <input
                     type="text"
@@ -109,28 +104,26 @@ export function TracklistEditor({
                     onChange={(e) => onUpdateTrack(idx, { performer: e.target.value || undefined })}
                     placeholder="Artist"
                     className="w-full border-none bg-transparent text-[11px] text-text-muted
-                      outline-none placeholder:text-text-ghost"
+                      outline-none placeholder:text-text-faint"
                   />
                 </div>
 
-                {/* Time info */}
                 <div className="flex flex-col items-end gap-0.5">
                   <span className="font-mono text-[10px] tabular-nums text-text-muted">
                     {formatTime(track.startMs)}
                   </span>
                   {trackDuration > 0 && (
-                    <span className="font-mono text-[10px] tabular-nums text-text-ghost">
+                    <span className="font-mono text-[10px] tabular-nums text-text-faint">
                       {formatTime(trackDuration)}
                     </span>
                   )}
                 </div>
 
-                {/* Delete */}
                 <button
                   type="button"
                   onClick={() => onRemoveTrack(idx)}
-                  className="rounded p-1 text-text-ghost opacity-0 transition-all
-                    hover:bg-red-bg hover:text-red group-hover:opacity-100"
+                  className="rounded p-1 text-text-faint opacity-0 transition-all
+                    hover:bg-red/10 hover:text-red group-hover:opacity-100"
                 >
                   <Trash2 className="size-3" />
                 </button>

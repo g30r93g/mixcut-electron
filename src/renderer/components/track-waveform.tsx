@@ -141,32 +141,30 @@ export const TrackWaveform = forwardRef<TrackWaveformHandle, TrackWaveformProps>
     }, []);
 
     return (
-      <div className="rounded-xl border border-glass-border bg-glass p-5">
-        {/* Waveform */}
+      <div className="rounded-xl border border-border bg-surface p-5">
         <div className="no-drag relative mb-10">
           <div ref={containerRef} className="relative h-[120px] w-full" />
         </div>
 
-        {/* Controls */}
         <div className="no-drag flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={togglePlayback}
               disabled={!isReady}
-              className="flex size-8 items-center justify-center rounded-full border border-glass-border
-                bg-glass transition-colors hover:border-glass-border-strong hover:bg-glass-hover
+              className="flex size-8 items-center justify-center rounded-full border border-border
+                bg-surface-light transition-colors hover:border-border-strong
                 disabled:cursor-not-allowed disabled:opacity-40"
             >
               {isPlaying ? (
-                <Pause className="size-3" fill="rgba(255,255,255,0.8)" stroke="none" />
+                <Pause className="size-3 text-text" fill="currentColor" stroke="none" />
               ) : (
-                <Play className="ml-0.5 size-3" fill="rgba(255,255,255,0.8)" stroke="none" />
+                <Play className="ml-0.5 size-3 text-text" fill="currentColor" stroke="none" />
               )}
             </button>
             <span className="font-mono text-[11px] text-text-muted">
               <span className="text-text-secondary">{formatTime(currentMs)}</span>
-              <span className="mx-1 text-text-ghost">/</span>
+              <span className="mx-1 text-text-faint">/</span>
               {formatTime(durationMs)}
             </span>
           </div>
@@ -182,9 +180,9 @@ export const TrackWaveform = forwardRef<TrackWaveformHandle, TrackWaveformProps>
               onChange={handleZoomChange}
               disabled={!isReady}
               className="no-drag h-[3px] w-20 cursor-pointer appearance-none rounded-full
-                bg-[rgba(255,255,255,0.08)] disabled:cursor-not-allowed disabled:opacity-40
+                bg-border disabled:cursor-not-allowed disabled:opacity-40
                 [&::-webkit-slider-thumb]:size-2.5 [&::-webkit-slider-thumb]:appearance-none
-                [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-accent-muted"
+                [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-accent"
             />
             <ZoomIn className="size-3 text-text-faint" strokeWidth={1.5} />
           </div>
