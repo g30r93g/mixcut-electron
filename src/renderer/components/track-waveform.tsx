@@ -1,5 +1,6 @@
 import WaveSurfer from 'wavesurfer.js';
 import TimelinePlugin from 'wavesurfer.js/dist/plugins/timeline.esm.js';
+import RegionsPlugin from 'wavesurfer.js/dist/plugins/regions.esm.js';
 import { Pause, Play, ZoomIn, ZoomOut } from 'lucide-react';
 import {
   forwardRef,
@@ -28,8 +29,6 @@ const TRACK_COLORS = [
   '#c878ff',
 ];
 
-const DEFAULT_COLOR = 'rgba(120, 160, 255, 0.35)';
-
 export type TrackWaveformHandle = {
   seekTo: (ms: number) => void;
 };
@@ -45,50 +44,47 @@ interface TrackWaveformProps {
   onSeek: (ms: number) => void;
 }
 
-function getTrackColorAtTime(ms: number, sortedTracks: CueTrack[], durationMs: number): string {
-  if (sortedTracks.length === 0) return DEFAULT_COLOR;
-  for (let i = sortedTracks.length - 1; i >= 0; i--) {
-    if (ms >= sortedTracks[i].startMs) {
-      return TRACK_COLORS[i % TRACK_COLORS.length];
-    }
-  }
-  return DEFAULT_COLOR;
-}
-
 export const TrackWaveform = forwardRef<TrackWaveformHandle, TrackWaveformProps>(
   ({ audioPath, onDurationChange, onTimeUpdate, onWaveformClick, currentMs, durationMs, tracks, onSeek }, ref) => {
     const containerRef = useRef<HTMLDivElement | null>(null);
     const wavesurferRef = useRef<WaveSurfer | null>(null);
+    const regionsRef = useRef<RegionsPlugin | null>(null);
     const [isReady, setIsReady] = useState(false);
     const [isPlaying, setIsPlaying] = useState(false);
     const [minPxPerSec, setMinPxPerSec] = useState(120);
     const minPxPerSecRef = useRef(minPxPerSec);
-    const tracksRef = useRef(tracks);
-    const durationMsRef = useRef(durationMs);
 
     const sortedTracks = useMemo(
       () => [...tracks].sort((a, b) => a.startMs - b.startMs),
       [tracks],
     );
 
-    // Keep refs in sync for use inside renderFunction
+    // Sync regions with tracks
     useEffect(() => {
-      tracksRef.current = sortedTracks;
-    }, [sortedTracks]);
-    useEffect(() => {
-      durationMsRef.current = durationMs;
-    }, [durationMs]);
-
-    // Re-render waveform when tracks change
-    useEffect(() => {
+      const regions = regionsRef.current;
       const instance = wavesurferRef.current;
-      if (!instance || !isReady) return;
-      // Force a re-render by calling drawBuffer
-      const decodedData = instance.getDecodedData();
-      if (decodedData) {
-        instance.renderer.render(decodedData);
-      }
-    }, [sortedTracks, isReady]);
+      if (!regions || !instance || !isReady) return;
+
+      const duration = instance.getDuration();
+      if (duration <= 0) return;
+
+      // Clear existing regions
+      regions.clearRegions();
+
+      // Add a region for each track
+      sortedTracks.forEach((track, i) => {
+        const nextStart = sortedTracks[i + 1]?.startMs ?? duration * 1000;
+        const color = TRACK_COLORS[i % TRACK_COLORS.length];
+
+        regions.addRegion({
+          start: track.startMs / 1000,
+          end: nextStart / 1000,
+          color: color + '18', // ~10% opacity hex
+          drag: false,
+          resize: false,
+        });
+      });
+    }, [sortedTracks, isReady, durationMs]);
 
     useImperativeHandle(
       ref,
@@ -109,11 +105,14 @@ export const TrackWaveform = forwardRef<TrackWaveformHandle, TrackWaveformProps>
       const container = containerRef.current;
       if (!container) return;
 
+      const regions = RegionsPlugin.create();
+      regionsRef.current = regions;
+
       const instance = WaveSurfer.create({
         container,
         height: 120,
-        waveColor: DEFAULT_COLOR,
-        progressColor: 'rgba(255, 255, 255, 0.5)',
+        waveColor: 'rgba(120, 160, 255, 0.35)',
+        progressColor: 'rgba(120, 160, 255, 0.6)',
         cursorColor: 'rgba(255, 255, 255, 0.6)',
         cursorWidth: 1,
         normalize: true,
@@ -121,44 +120,6 @@ export const TrackWaveform = forwardRef<TrackWaveformHandle, TrackWaveformProps>
         minPxPerSec: minPxPerSecRef.current,
         barGap: 1,
         barRadius: 1,
-        renderFunction: (peaks: (Float32Array | number[])[], ctx: CanvasRenderingContext2D) => {
-          const { width, height } = ctx.canvas;
-          const barWidth = 2;
-          const barGap = 1;
-          const step = barWidth + barGap;
-          const halfHeight = height / 2;
-          const data = peaks[0];
-          if (!data) return;
-
-          // Get duration from the wavesurfer instance directly, falling back to ref
-          const wsDur = wavesurferRef.current?.getDuration() ?? 0;
-          const dur = wsDur > 0 ? wsDur * 1000 : durationMsRef.current;
-          const sorted = tracksRef.current;
-
-          ctx.clearRect(0, 0, width, height);
-
-          for (let x = 0; x < width; x += step) {
-            // Aggregate peak across the sample range this bar covers
-            const startSample = Math.floor((x / width) * data.length);
-            const endSample = Math.floor(((x + barWidth) / width) * data.length);
-            let peak = 0;
-            for (let s = startSample; s <= endSample && s < data.length; s++) {
-              const v = Math.abs(data[s] ?? 0);
-              if (v > peak) peak = v;
-            }
-            const barHeight = Math.max(1, peak * halfHeight);
-
-            const timeMs = (x / width) * dur;
-            const color = getTrackColorAtTime(timeMs, sorted, dur);
-
-            ctx.fillStyle = color;
-            ctx.globalAlpha = 0.7;
-            ctx.beginPath();
-            ctx.roundRect(x, halfHeight - barHeight, barWidth, barHeight * 2, 1);
-            ctx.fill();
-          }
-          ctx.globalAlpha = 1;
-        },
         plugins: [
           TimelinePlugin.create({
             style: {
@@ -167,6 +128,7 @@ export const TrackWaveform = forwardRef<TrackWaveformHandle, TrackWaveformProps>
               color: 'rgba(255, 255, 255, 0.2)',
             },
           }),
+          regions,
         ],
       });
 
@@ -194,6 +156,7 @@ export const TrackWaveform = forwardRef<TrackWaveformHandle, TrackWaveformProps>
       return () => {
         instance.destroy();
         wavesurferRef.current = null;
+        regionsRef.current = null;
       };
     }, [onDurationChange, onTimeUpdate, onWaveformClick]);
 
