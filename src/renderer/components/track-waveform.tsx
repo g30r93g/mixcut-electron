@@ -136,20 +136,26 @@ export const TrackWaveform = forwardRef<TrackWaveformHandle, TrackWaveformProps>
           ctx.clearRect(0, 0, width, height);
 
           for (let x = 0; x < width; x += step) {
-            const sampleIndex = Math.floor((x / width) * data.length);
-            const value = Math.abs(data[sampleIndex] ?? 0);
-            const barHeight = Math.max(1, value * halfHeight);
+            // Aggregate peak across the sample range this bar covers
+            const startSample = Math.floor((x / width) * data.length);
+            const endSample = Math.floor(((x + barWidth) / width) * data.length);
+            let peak = 0;
+            for (let s = startSample; s <= endSample && s < data.length; s++) {
+              const v = Math.abs(data[s] ?? 0);
+              if (v > peak) peak = v;
+            }
+            const barHeight = Math.max(1, peak * halfHeight);
 
-            // Determine time at this x position
             const timeMs = (x / width) * dur;
             const color = getTrackColorAtTime(timeMs, sorted, dur);
 
             ctx.fillStyle = color;
-            ctx.globalAlpha = 0.6;
+            ctx.globalAlpha = 0.7;
             ctx.beginPath();
             ctx.roundRect(x, halfHeight - barHeight, barWidth, barHeight * 2, 1);
             ctx.fill();
           }
+          ctx.globalAlpha = 1;
         },
         plugins: [
           TimelinePlugin.create({
