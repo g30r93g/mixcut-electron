@@ -99,7 +99,7 @@ export const TrackWaveform = forwardRef<TrackWaveformHandle, TrackWaveformProps>
         container,
         height: 120,
         waveColor: DEFAULT_COLOR,
-        progressColor: 'transparent',
+        progressColor: 'rgba(255, 255, 255, 0.8)',
         cursorColor: 'rgba(255, 255, 255, 0.6)',
         cursorWidth: 1,
         normalize: true,
