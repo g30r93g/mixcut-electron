@@ -22,10 +22,6 @@ const config: ForgeConfig = {
     new MakerDeb({}),
     new MakerDMG({
       icon: 'resources/icon.icns',
-      contents: [
-        { x: 180, y: 170, type: 'file', path: '' },
-        { x: 480, y: 170, type: 'link', path: '/Applications' },
-      ],
     }),
   ],
   plugins: [
