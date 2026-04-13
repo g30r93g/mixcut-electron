@@ -153,7 +153,6 @@ export function TrackWorkspace({
         currentMs={currentMs}
         durationMs={durationMs}
         tracks={tracks}
-        onSeek={handleSeek}
       />
 
       {/* Bottom: tracklist + metadata */}
