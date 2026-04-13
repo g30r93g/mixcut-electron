@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
-import { Scissors } from 'lucide-react';
+import { Scissors, ArrowLeft } from 'lucide-react';
 import { TrackWaveform, type TrackWaveformHandle } from './track-waveform';
 import { TracklistEditor } from './tracklist-editor';
 import { MetadataEditor } from './metadata-editor';
@@ -19,6 +19,7 @@ interface TrackWorkspaceProps {
   onArtworkChange: (path: string | undefined) => void;
   onOutputDirChange: (dir: string) => void;
   onCutTracks: () => void;
+  onBack: () => void;
   disabled?: boolean;
 }
 
@@ -34,6 +35,7 @@ export function TrackWorkspace({
   onArtworkChange,
   onOutputDirChange,
   onCutTracks,
+  onBack,
   disabled,
 }: TrackWorkspaceProps) {
   const waveformRef = useRef<TrackWaveformHandle | null>(null);
@@ -111,11 +113,21 @@ export function TrackWorkspace({
     <div className="flex h-full flex-col gap-4 overflow-hidden p-6 pt-4">
       {/* Top bar */}
       <div className="flex items-center justify-between">
-        <div>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={onBack}
+            className="no-drag flex size-7 items-center justify-center rounded-md
+              text-text-muted transition-colors hover:bg-surface-light hover:text-text"
+          >
+            <ArrowLeft className="size-3.5" strokeWidth={1.5} />
+          </button>
+          <div>
           <h2 className="text-sm font-semibold text-text">{metadata.title || audioName}</h2>
           {metadata.performer && (
             <p className="font-mono text-[10px] text-text-muted">{metadata.performer}</p>
           )}
+          </div>
         </div>
         <button
           type="button"

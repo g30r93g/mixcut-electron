@@ -111,6 +111,7 @@ export function App() {
             onArtworkChange={setArtworkPath}
             onOutputDirChange={setOutputDir}
             onCutTracks={handleCutTracks}
+            onBack={handleNewSession}
             disabled={showProcessingModal || showDoneModal}
           />
         )}
