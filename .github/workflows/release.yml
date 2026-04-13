@@ -34,7 +34,7 @@ jobs:
           git clone https://github.com/nu774/m4acut.git /tmp/m4acut
           cd /tmp/m4acut
           autoreconf -fi
-          ./configure
+          ./configure LIBS="-liconv"
           make -j$(sysctl -n hw.ncpu)
           cp m4acut $GITHUB_WORKSPACE/resources/bin/darwin/m4acut
           chmod +x $GITHUB_WORKSPACE/resources/bin/darwin/m4acut
