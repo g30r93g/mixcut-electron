@@ -28,6 +28,8 @@ const TRACK_COLORS = [
   '#c878ff',
 ];
 
+const DEFAULT_COLOR = 'rgba(120, 160, 255, 0.35)';
+
 export type TrackWaveformHandle = {
   seekTo: (ms: number) => void;
 };
@@ -43,65 +45,50 @@ interface TrackWaveformProps {
   onSeek: (ms: number) => void;
 }
 
+function getTrackColorAtTime(ms: number, sortedTracks: CueTrack[], durationMs: number): string {
+  if (sortedTracks.length === 0) return DEFAULT_COLOR;
+  for (let i = sortedTracks.length - 1; i >= 0; i--) {
+    if (ms >= sortedTracks[i].startMs) {
+      return TRACK_COLORS[i % TRACK_COLORS.length];
+    }
+  }
+  return DEFAULT_COLOR;
+}
+
 export const TrackWaveform = forwardRef<TrackWaveformHandle, TrackWaveformProps>(
   ({ audioPath, onDurationChange, onTimeUpdate, onWaveformClick, currentMs, durationMs, tracks, onSeek }, ref) => {
     const containerRef = useRef<HTMLDivElement | null>(null);
-    const wrapperRef = useRef<HTMLDivElement | null>(null);
     const wavesurferRef = useRef<WaveSurfer | null>(null);
     const [isReady, setIsReady] = useState(false);
     const [isPlaying, setIsPlaying] = useState(false);
     const [minPxPerSec, setMinPxPerSec] = useState(120);
     const minPxPerSecRef = useRef(minPxPerSec);
-    const [scrollLeft, setScrollLeft] = useState(0);
-    const [scrollWidth, setScrollWidth] = useState(0);
-    const [clientWidth, setClientWidth] = useState(0);
+    const tracksRef = useRef(tracks);
+    const durationMsRef = useRef(durationMs);
 
     const sortedTracks = useMemo(
       () => [...tracks].sort((a, b) => a.startMs - b.startMs),
       [tracks],
     );
 
-    // Track the waveform's scroll position so we can position overlays correctly
+    // Keep refs in sync for use inside renderFunction
     useEffect(() => {
-      const container = containerRef.current;
-      if (!container) return;
+      tracksRef.current = sortedTracks;
+    }, [sortedTracks]);
+    useEffect(() => {
+      durationMsRef.current = durationMs;
+    }, [durationMs]);
 
-      const shadowRoot = container.querySelector('div')?.shadowRoot;
-      const scrollEl = shadowRoot?.querySelector('[part="scroll"]') as HTMLElement | null;
-      if (!scrollEl) {
-        // Fallback: WaveSurfer may use the container's first child as scroller
-        const wrapper = container.firstElementChild as HTMLElement | null;
-        if (!wrapper) return;
-
-        const update = () => {
-          setScrollLeft(wrapper.scrollLeft);
-          setScrollWidth(wrapper.scrollWidth);
-          setClientWidth(wrapper.clientWidth);
-        };
-        wrapper.addEventListener('scroll', update);
-        const observer = new ResizeObserver(update);
-        observer.observe(wrapper);
-        update();
-        return () => {
-          wrapper.removeEventListener('scroll', update);
-          observer.disconnect();
-        };
+    // Re-render waveform when tracks change
+    useEffect(() => {
+      const instance = wavesurferRef.current;
+      if (!instance || !isReady) return;
+      // Force a re-render by calling drawBuffer
+      const decodedData = instance.getDecodedData();
+      if (decodedData) {
+        instance.renderer.render(decodedData);
       }
-
-      const update = () => {
-        setScrollLeft(scrollEl.scrollLeft);
-        setScrollWidth(scrollEl.scrollWidth);
-        setClientWidth(scrollEl.clientWidth);
-      };
-      scrollEl.addEventListener('scroll', update);
-      const observer = new ResizeObserver(update);
-      observer.observe(scrollEl);
-      update();
-      return () => {
-        scrollEl.removeEventListener('scroll', update);
-        observer.disconnect();
-      };
-    }, [isReady]);
+    }, [sortedTracks, isReady]);
 
     useImperativeHandle(
       ref,
@@ -125,8 +112,8 @@ export const TrackWaveform = forwardRef<TrackWaveformHandle, TrackWaveformProps>
       const instance = WaveSurfer.create({
         container,
         height: 120,
-        waveColor: 'rgba(255, 255, 255, 0.15)',
-        progressColor: 'rgba(255, 255, 255, 0.25)',
+        waveColor: DEFAULT_COLOR,
+        progressColor: 'rgba(255, 255, 255, 0.5)',
         cursorColor: 'rgba(255, 255, 255, 0.6)',
         cursorWidth: 1,
         normalize: true,
@@ -134,6 +121,36 @@ export const TrackWaveform = forwardRef<TrackWaveformHandle, TrackWaveformProps>
         minPxPerSec: minPxPerSecRef.current,
         barGap: 1,
         barRadius: 1,
+        renderFunction: (peaks: (Float32Array | number[])[], ctx: CanvasRenderingContext2D) => {
+          const { width, height } = ctx.canvas;
+          const barWidth = 2;
+          const barGap = 1;
+          const step = barWidth + barGap;
+          const halfHeight = height / 2;
+          const data = peaks[0];
+          if (!data) return;
+
+          const dur = durationMsRef.current;
+          const sorted = tracksRef.current;
+
+          ctx.clearRect(0, 0, width, height);
+
+          for (let x = 0; x < width; x += step) {
+            const sampleIndex = Math.floor((x / width) * data.length);
+            const value = Math.abs(data[sampleIndex] ?? 0);
+            const barHeight = Math.max(1, value * halfHeight);
+
+            // Determine time at this x position
+            const timeMs = (x / width) * dur;
+            const color = getTrackColorAtTime(timeMs, sorted, dur);
+
+            ctx.fillStyle = color;
+            ctx.globalAlpha = 0.6;
+            ctx.beginPath();
+            ctx.roundRect(x, halfHeight - barHeight, barWidth, barHeight * 2, 1);
+            ctx.fill();
+          }
+        },
         plugins: [
           TimelinePlugin.create({
             style: {
@@ -208,46 +225,12 @@ export const TrackWaveform = forwardRef<TrackWaveformHandle, TrackWaveformProps>
       setMinPxPerSec(Number(e.target.value));
     }, []);
 
-    // Compute track region overlays positioned relative to the visible waveform area
-    const trackRegions = useMemo(() => {
-      if (durationMs <= 0 || scrollWidth <= 0 || sortedTracks.length === 0) return [];
-
-      return sortedTracks.map((track, i) => {
-        const nextStart = sortedTracks[i + 1]?.startMs ?? durationMs;
-        const startPx = (track.startMs / durationMs) * scrollWidth;
-        const endPx = (nextStart / durationMs) * scrollWidth;
-        const color = TRACK_COLORS[i % TRACK_COLORS.length];
-
-        return {
-          key: track.trackNumber,
-          left: startPx - scrollLeft,
-          width: endPx - startPx,
-          color,
-        };
-      });
-    }, [durationMs, scrollWidth, scrollLeft, sortedTracks]);
-
     return (
       <div className="rounded-xl border border-border bg-surface p-5">
-        {/* Waveform with color overlays */}
-        <div ref={wrapperRef} className="waveform-wrapper no-drag relative mb-10 overflow-hidden">
-          {/* Track color regions behind the waveform */}
-          {trackRegions.map((region) => (
-            <div
-              key={region.key}
-              className="pointer-events-none absolute top-0 h-[120px]"
-              style={{
-                left: `${region.left}px`,
-                width: `${region.width}px`,
-                backgroundColor: region.color,
-                opacity: 0.08,
-              }}
-            />
-          ))}
+        <div className="waveform-wrapper no-drag relative mb-10">
           <div ref={containerRef} className="relative h-[120px] w-full" />
         </div>
 
-        {/* Controls */}
         <div className="no-drag flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
