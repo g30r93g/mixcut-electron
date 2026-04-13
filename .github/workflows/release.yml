@@ -1,0 +1,52 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  build:
+    runs-on: macos-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm test
+
+      - name: Compile m4acut
+        run: |
+          brew install automake libtool
+          git clone https://github.com/l-smash/l-smash.git /tmp/l-smash
+          cd /tmp/l-smash
+          ./configure --prefix=/tmp/l-smash-build
+          make -j$(sysctl -n hw.ncpu)
+          make install
+          git clone https://github.com/nu774/m4acut.git /tmp/m4acut
+          cd /tmp/m4acut
+          gcc -O2 -o m4acut m4acut.c -I/tmp/l-smash-build/include -L/tmp/l-smash-build/lib -llsmash
+          cp m4acut $GITHUB_WORKSPACE/resources/bin/darwin/m4acut
+          chmod +x $GITHUB_WORKSPACE/resources/bin/darwin/m4acut
+
+      - name: Install AtomicParsley
+        run: |
+          brew install atomicparsley
+          cp $(which AtomicParsley) resources/bin/darwin/AtomicParsley
+          chmod +x resources/bin/darwin/AtomicParsley
+
+      - name: Build DMG
+        run: pnpm run make
+
+      - name: Upload release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: out/make/**/*.dmg
