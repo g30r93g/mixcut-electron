@@ -1,4 +1,4 @@
-import { app, BrowserWindow, protocol, net } from 'electron';
+import { app, BrowserWindow, Menu, protocol, net } from 'electron';
 import path from 'node:path';
 import { registerIpcHandlers } from './ipc-handlers';
 
@@ -45,6 +45,27 @@ protocol.registerSchemesAsPrivileged([
 ]);
 
 app.whenReady().then(() => {
+  const menu = Menu.buildFromTemplate([
+    { role: 'appMenu' },
+    { role: 'fileMenu' },
+    { role: 'editMenu' },
+    {
+      label: 'View',
+      submenu: [
+        { role: 'reload' },
+        { role: 'forceReload' },
+        { role: 'toggleDevTools' },
+        { type: 'separator' },
+        { role: 'resetZoom' },
+        // Zoom In / Zoom Out intentionally omitted — ⌘+=/- used for waveform zoom
+        { type: 'separator' },
+        { role: 'togglefullscreen' },
+      ],
+    },
+    { role: 'windowMenu' },
+  ]);
+  Menu.setApplicationMenu(menu);
+
   protocol.handle('mixcut-file', (request) => {
     const filePath = decodeURIComponent(request.url.replace('mixcut-file://', ''));
     return net.fetch(`file://${filePath}`);
