@@ -20,6 +20,9 @@ const MARKER_COLOR = 'rgba(255, 80, 80, 0.7)';
 
 export type TrackWaveformHandle = {
   seekTo: (ms: number) => void;
+  togglePlayback: () => void;
+  skip: (seconds: number) => void;
+  zoomBy: (delta: number) => void;
 };
 
 interface TrackWaveformProps {
@@ -70,21 +73,6 @@ export const TrackWaveform = forwardRef<TrackWaveformHandle, TrackWaveformProps>
         });
       });
     }, [sortedTracks, isReady, durationMs]);
-
-    useImperativeHandle(
-      ref,
-      () => ({
-        seekTo: (ms: number) => {
-          const instance = wavesurferRef.current;
-          if (!instance || !isReady) return;
-          const dur = instance.getDuration();
-          if (dur <= 0) return;
-          instance.setTime(Math.max(0, Math.min(ms / 1000, dur)));
-          onTimeUpdate(ms);
-        },
-      }),
-      [isReady, onTimeUpdate],
-    );
 
     useEffect(() => {
       const container = containerRef.current;
@@ -186,6 +174,24 @@ export const TrackWaveform = forwardRef<TrackWaveformHandle, TrackWaveformProps>
       onTimeUpdate(newTime * 1000);
     }, [isReady, onTimeUpdate]);
 
+    useImperativeHandle(
+      ref,
+      () => ({
+        seekTo: (ms: number) => {
+          const instance = wavesurferRef.current;
+          if (!instance || !isReady) return;
+          const dur = instance.getDuration();
+          if (dur <= 0) return;
+          instance.setTime(Math.max(0, Math.min(ms / 1000, dur)));
+          onTimeUpdate(ms);
+        },
+        togglePlayback: () => togglePlayback(),
+        skip: (seconds: number) => skip(seconds),
+        zoomBy: (delta: number) => setMinPxPerSec((prev) => Math.max(5, Math.min(400, prev + delta))),
+      }),
+      [isReady, onTimeUpdate, togglePlayback, skip],
+    );
+
     const handleZoomChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
       setMinPxPerSec(Number(e.target.value));
     }, []);
@@ -256,7 +262,7 @@ export const TrackWaveform = forwardRef<TrackWaveformHandle, TrackWaveformProps>
             <ZoomOut className="size-3 text-text-faint" strokeWidth={1.5} />
             <input
               type="range"
-              min={40}
+              min={5}
               max={400}
               step={10}
               value={minPxPerSec}
