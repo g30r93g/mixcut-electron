@@ -1,7 +1,7 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import type { CueTrack } from '../../shared/types';
-import { formatTime } from '../lib/time';
+import { formatTime, parseTime } from '../lib/time';
 
 interface TracklistEditorProps {
   tracks: CueTrack[];
@@ -11,6 +11,48 @@ interface TracklistEditorProps {
   onRemoveTrack: (index: number) => void;
   onAddTrack: (startMs: number | null) => void;
   onSeek: (ms: number) => void;
+}
+
+function StartTimeInput({ startMs, onChange }: { startMs: number; onChange: (ms: number) => void }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState('');
+
+  if (!editing) {
+    return (
+      <button
+        type="button"
+        onClick={() => {
+          setDraft(formatTime(startMs));
+          setEditing(true);
+        }}
+        className="font-mono text-[10px] tabular-nums text-text-muted hover:text-accent transition-colors"
+      >
+        {formatTime(startMs)}
+      </button>
+    );
+  }
+
+  const commit = () => {
+    const ms = parseTime(draft);
+    if (ms !== null) onChange(ms);
+    setEditing(false);
+  };
+
+  return (
+    <input
+      autoFocus
+      type="text"
+      value={draft}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') commit();
+        if (e.key === 'Escape') setEditing(false);
+      }}
+      className="w-14 border-none bg-transparent text-right font-mono text-[10px] tabular-nums
+        text-text-muted outline-none ring-1 ring-accent/30 rounded px-1"
+    />
+  );
 }
 
 export function TracklistEditor({
@@ -39,10 +81,21 @@ export function TracklistEditor({
     [tracks],
   );
 
+  const prevTrackCount = useRef(tracks.length);
+  const lastTitleRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (tracks.length > prevTrackCount.current) {
+      // A track was added — focus its title on next render
+      requestAnimationFrame(() => lastTitleRef.current?.focus());
+    }
+    prevTrackCount.current = tracks.length;
+  }, [tracks.length]);
+
   return (
     <div className="overflow-hidden rounded-xl border border-border bg-surface">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-border px-4 py-3">
+      <div className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-surface px-4 py-3">
         <span className="font-mono text-[9px] tracking-[0.2em] text-text-faint uppercase">
           Tracklist
         </span>
@@ -66,9 +119,10 @@ export function TracklistEditor({
         </div>
       ) : (
         <div>
-          {sortedTracks.map((track) => {
+          {sortedTracks.map((track, sortedIdx) => {
             const idx = getOriginalIndex(track.trackNumber);
             const isActive = track.trackNumber === activeTrackNumber;
+            const isLast = sortedIdx === sortedTracks.length - 1;
             const nextTrack = sortedTracks.find((t) => t.trackNumber > track.trackNumber);
             const endMs = nextTrack?.startMs ?? durationMs;
             const trackDuration = endMs - track.startMs;
@@ -91,6 +145,7 @@ export function TracklistEditor({
 
                 <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                   <input
+                    ref={isLast ? lastTitleRef : undefined}
                     type="text"
                     value={track.title}
                     onChange={(e) => onUpdateTrack(idx, { title: e.target.value })}
@@ -109,9 +164,10 @@ export function TracklistEditor({
                 </div>
 
                 <div className="flex flex-col items-end gap-0.5">
-                  <span className="font-mono text-[10px] tabular-nums text-text-muted">
-                    {formatTime(track.startMs)}
-                  </span>
+                  <StartTimeInput
+                    startMs={track.startMs}
+                    onChange={(ms) => onUpdateTrack(idx, { startMs: ms })}
+                  />
                   {trackDuration > 0 && (
                     <span className="font-mono text-[10px] tabular-nums text-text-faint">
                       {formatTime(trackDuration)}
