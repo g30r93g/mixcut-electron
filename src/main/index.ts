@@ -18,6 +18,12 @@ function createWindow() {
     },
   });
 
+  mainWindow.webContents.on('before-input-event', (_event, input) => {
+    if (input.meta && (input.key === '=' || input.key === '+' || input.key === '-')) {
+      _event.preventDefault();
+    }
+  });
+
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
     mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
   } else {
