@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Scissors, ArrowLeft } from 'lucide-react';
 import { TrackWaveform, type TrackWaveformHandle } from './track-waveform';
 import { TracklistEditor } from './tracklist-editor';
@@ -49,41 +49,47 @@ export function TrackWorkspace({
 
   const handleWaveformClick = useCallback(() => {}, []);
 
+  const renumber = useCallback(
+    (list: CueTrack[]) =>
+      [...list]
+        .sort((a, b) => a.startMs - b.startMs)
+        .map((t, i) => ({ ...t, trackNumber: i + 1 })),
+    [],
+  );
+
   const handleAddTrack = useCallback(
     (startMs: number | null) => {
-      const nextNumber =
-        sortedTracks.length > 0
-          ? Math.max(...sortedTracks.map((t) => t.trackNumber)) + 1
-          : 1;
       const lastStart = sortedTracks[sortedTracks.length - 1]?.startMs ?? 0;
-      const newStart = startMs ?? (currentMs > 0 ? currentMs : lastStart + 60000);
-      onUpdateTracks([
-        ...tracks,
-        {
-          trackNumber: nextNumber,
-          title: `Track ${nextNumber}`,
-          performer: undefined,
-          startMs: Math.round(newStart),
-        },
-      ]);
+      const newStart = startMs ?? (currentMs > 0 ? currentMs : sortedTracks.length > 0 ? lastStart + 60000 : 0);
+      onUpdateTracks(
+        renumber([
+          ...tracks,
+          {
+            trackNumber: 0,
+            title: '',
+            performer: undefined,
+            startMs: Math.round(newStart),
+          },
+        ]),
+      );
     },
-    [sortedTracks, tracks, onUpdateTracks, currentMs],
+    [sortedTracks, tracks, onUpdateTracks, currentMs, renumber],
   );
 
   const handleUpdateTrack = useCallback(
     (index: number, patch: Partial<CueTrack>) => {
       const next = [...tracks];
       next[index] = { ...next[index], ...patch };
-      onUpdateTracks(next);
+      onUpdateTracks('startMs' in patch ? renumber(next) : next);
     },
-    [tracks, onUpdateTracks],
+    [tracks, onUpdateTracks, renumber],
   );
 
   const handleRemoveTrack = useCallback(
     (index: number) => {
-      onUpdateTracks(tracks.filter((_, i) => i !== index));
+      onUpdateTracks(renumber(tracks.filter((_, i) => i !== index)));
     },
-    [tracks, onUpdateTracks],
+    [tracks, onUpdateTracks, renumber],
   );
 
   const handleSeek = useCallback((ms: number) => {
@@ -106,6 +112,53 @@ export function TrackWorkspace({
       // parsing failed
     }
   }, [metadata, onUpdateTracks, onUpdateMetadata]);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      const inInput = tag === 'INPUT' || tag === 'TEXTAREA';
+
+      // Add track: ⌘+Enter (works even in inputs)
+      if (e.metaKey && e.key === 'Enter') {
+        e.preventDefault();
+        handleAddTrack(null);
+        return;
+      }
+
+      // All other shortcuts are suppressed when typing in an input
+      if (inInput) return;
+
+      // Play/Pause: Space
+      if (e.key === ' ') {
+        e.preventDefault();
+        waveformRef.current?.togglePlayback();
+        return;
+      }
+
+      // Skip: Arrow keys (5s), Shift+Arrow (15s), ⌘+Arrow (30s)
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        e.preventDefault();
+        const direction = e.key === 'ArrowLeft' ? -1 : 1;
+        const seconds = e.metaKey ? 30 : e.shiftKey ? 15 : 5;
+        waveformRef.current?.skip(direction * seconds);
+        return;
+      }
+
+      // Zoom: ⌘+= / ⌘+-
+      if (e.metaKey && (e.key === '=' || e.key === '+')) {
+        e.preventDefault();
+        waveformRef.current?.zoomBy(30);
+        return;
+      }
+      if (e.metaKey && e.key === '-') {
+        e.preventDefault();
+        waveformRef.current?.zoomBy(-30);
+        return;
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [handleAddTrack]);
 
   const canCut = tracks.length > 0 && !disabled;
 
