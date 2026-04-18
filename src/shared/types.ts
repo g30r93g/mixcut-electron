@@ -56,3 +56,9 @@ export type CutProgress =
   | { stage: 'tagging'; trackNumber: number; totalTracks: number }
   | { stage: 'complete'; outputDir: string }
   | { stage: 'error'; message: string };
+
+export type DownloadProgress =
+  | { stage: 'downloading'; percent: number }
+  | { stage: 'converting'; message: string }
+  | { stage: 'complete'; path: string; name: string; metadata: { title?: string; artist?: string } }
+  | { stage: 'error'; message: string };
