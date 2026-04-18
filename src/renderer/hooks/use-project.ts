@@ -20,7 +20,11 @@ export function useProject() {
     return () => clearTimeout(saveTimeout.current);
   }, [project]);
 
-  const createProject = useCallback(async (audioPath: string, audioName: string) => {
+  const createProject = useCallback(async (
+    audioPath: string,
+    audioName: string,
+    initialMetadata?: { title?: string; artist?: string },
+  ) => {
     const prefs = await mixcut.getPreferences();
     const baseName = audioName.replace(/\.m4a$/i, '');
     const newProject: ProjectState = {
@@ -30,7 +34,10 @@ export function useProject() {
       updatedAt: new Date().toISOString(),
       audioPath,
       outputDir: `${prefs.defaultOutputDir}/${slugify(baseName)}`,
-      metadata: { title: baseName, performer: '' },
+      metadata: {
+        title: initialMetadata?.title ?? baseName,
+        performer: initialMetadata?.artist ?? '',
+      },
       tracks: [],
     };
     await mixcut.saveProject(newProject);
