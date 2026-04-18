@@ -5,7 +5,7 @@ const FILE_RE = /^FILE\s+"(.+?)"\s+(.+)$/i;
 const TRACK_RE = /^TRACK\s+(\d+)\s+(\w+)/i;
 const TITLE_RE = /^TITLE\s+"(.+?)"$/i;
 const PERFORMER_RE = /^PERFORMER\s+"(.+?)"$/i;
-const INDEX_RE = /^INDEX\s+01\s+(\d{2}):(\d{2}):(\d{2})$/i;
+const INDEX_RE = /^INDEX\s+01\s+(\d+):(\d{2}):(\d{2})$/i;
 const REM_GENRE_RE = /^REM\s+GENRE\s+"?(.+?)"?$/i;
 const REM_DATE_RE = /^REM\s+(?:DATE|YEAR)\s+"?(.+?)"?$/i;
 

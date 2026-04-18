@@ -167,7 +167,12 @@ export const TrackWaveform = forwardRef<TrackWaveformHandle, TrackWaveformProps>
       minPxPerSecRef.current = minPxPerSec;
       const instance = wavesurferRef.current;
       if (!instance || !isReady) return;
-      instance.zoom(minPxPerSec);
+      try {
+        instance.zoom(minPxPerSec);
+      } catch {
+        // WaveSurfer may throw "No audio loaded" if the decoder
+        // hasn't fully attached yet when isReady fires — safe to ignore.
+      }
     }, [minPxPerSec, isReady]);
 
     const skip = useCallback((seconds: number) => {
