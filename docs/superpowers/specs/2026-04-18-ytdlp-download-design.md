@@ -15,14 +15,17 @@ Add the ability to download audio from YouTube and SoundCloud URLs using yt-dlp.
 
 ### Binary Bundling
 
-`yt-dlp` and `ffmpeg` are placed in `resources/bin/darwin/` alongside existing `m4acut` and `AtomicParsley` binaries. They are resolved at runtime via `getBinaryPath()` in `src/main/binary-path.ts`. The Forge config already bundles `resources/bin` as an extra resource — no config change needed.
+`yt-dlp`, `ffmpeg`, and `ffprobe` are placed in `resources/bin/darwin/` alongside existing `m4acut` and `AtomicParsley` binaries. yt-dlp requires both `ffmpeg` and `ffprobe` for `--extract-audio` to work — `ffprobe` is used to analyze streams before conversion. They are resolved at runtime via `getBinaryPath()` in `src/main/binary-path.ts`. The Forge config already bundles `resources/bin` as an extra resource — no config change needed.
 
 New exports in `binary-path.ts`:
 
 ```typescript
 export const YTDLP = () => getBinaryPath('yt-dlp');
 export const FFMPEG = () => getBinaryPath('ffmpeg');
+export const FFMPEG_DIR = () => path.dirname(getBinaryPath('ffmpeg'));
 ```
+
+`--ffmpeg-location` is passed the directory (`FFMPEG_DIR()`), not the binary path. yt-dlp expects both `ffmpeg` and `ffprobe` to be colocated in this directory.
 
 ### Shared Types
 
@@ -42,17 +45,26 @@ New IPC handler `download-audio` in `src/main/ipc-handlers.ts`.
 
 The handler:
 
-1. Creates a temp directory (`os.tmpdir()/mixcut-dl-XXXXXX`)
-2. Spawns `yt-dlp` via `child_process.spawn` (not `execFile`) to enable streaming stderr for progress
-3. Flags: `--extract-audio --audio-format m4a --no-playlist --ffmpeg-location <bundled-ffmpeg-dir> --print-json -o <tempdir>/%(title)s.%(ext)s <url>`
-4. Parses yt-dlp's stderr output for `[download] XX.X%` lines to extract download percentage
-5. Detects conversion phase from `[ExtractAudio]` or `[Postprocessor]` lines in stderr
-6. On completion, parses the JSON line from stdout to extract: `title`, `uploader` (used as artist), and the final output file path
-7. Sends `DownloadProgress` events to the renderer via `window.webContents.send('download-progress', progress)`
-8. Returns `{ path, name, metadata: { title, artist } }` on success
-9. Cleans up temp directory on error; on success the temp file persists until the project is done with it
+1. Validates the URL is a plausible HTTP(S) URL before spawning yt-dlp (rejects empty strings, non-URL input). This provides instant feedback instead of waiting for yt-dlp to time out on garbage input.
+2. Creates a temp directory (`os.tmpdir()/mixcut-dl-XXXXXX`)
+3. Spawns `yt-dlp` via `child_process.spawn` (not `execFile`) to enable streaming stderr for progress
+4. Flags: `--extract-audio --audio-format m4a --no-playlist --ffmpeg-location <FFMPEG_DIR()> --print after_move:filepath,title,uploader -o <tempdir>/%(title)s.%(ext)s <url>`
+5. Parses yt-dlp's stderr output for `[download] XX.X%` lines to extract download percentage
+6. Detects conversion phase from `[ExtractAudio]` or `[Postprocessor]` lines in stderr
+7. Gets the `BrowserWindow` from `event.sender` via `BrowserWindow.fromWebContents(event.sender)` (same pattern as `cut-tracks`)
+8. Sends `DownloadProgress` events to the renderer via `window.webContents.send('download-progress', progress)`
+9. On **process exit** (not on stdout data arrival), parses the `--print` output from stdout. The `--print after_move:filepath,title,uploader` flag outputs three newline-separated values: the final `.m4a` file path, the title, and the uploader. These are only valid to read after process exit with code 0.
+10. Copies the downloaded `.m4a` from the temp directory into the app's `userData` directory (`app.getPath('userData')/downloads/`) so it persists across sessions and isn't subject to macOS `/tmp/` cleanup. The project's `audioPath` points to this durable location.
+11. Cleans up the temp directory after copying (both on success and error)
+12. Returns `{ path, name, metadata: { title, artist } }` on success
 
-The spawned child process reference is stored so it can be killed if the user cancels.
+**Output template filename sanitization:** yt-dlp sanitizes `%(title)s` by default (replacing `/`, `:`, `"`, etc. with `_` and truncating to filesystem limits). The sanitized filename may differ from the `title` in the `--print` output. The handler uses the file path from `--print after_move:filepath` as the source of truth for the file location, not a reconstructed path from the title.
+
+**Child process lifecycle:** A module-level `activeDownload: { process: ChildProcess; tempDir: string } | null` variable tracks the current download. Guards:
+- `download-audio` rejects with an error if `activeDownload` is already set (no concurrent downloads)
+- `cancel-download` is a no-op if `activeDownload` is null
+- `activeDownload` is set to null in a `finally` block after the process exits (regardless of success/error/cancel)
+- On cancel: sends SIGTERM to the process, cleans up temp dir, resets `activeDownload`
 
 ### Preload Bridge
 
@@ -109,10 +121,14 @@ Extend `createProject` to accept an optional `initialMetadata: { title?: string;
 User clicks "Download from URL" on OpenAudio screen
   → DownloadDialog opens
   → User pastes URL, clicks Download
+  → URL validated (must be http/https)
   → IPC invoke 'download-audio' with URL
-  → Main process spawns yt-dlp
+  → Main process sets activeDownload, spawns yt-dlp
   → yt-dlp stderr parsed → IPC 'download-progress' events → useDownloadProgress → dialog UI
-  → yt-dlp completes → JSON stdout parsed for metadata
+  → yt-dlp process exits with code 0
+  → stdout parsed for filepath, title, uploader (from --print after_move:...)
+  → .m4a copied from temp dir to userData/downloads/
+  → temp dir cleaned up, activeDownload reset to null
   → IPC returns { path, name, metadata }
   → DownloadDialog calls onComplete
   → OpenAudio calls onAudioSelected(path, name) with metadata
@@ -136,6 +152,7 @@ User clicks "Download from URL" on OpenAudio screen
 |------|--------|
 | `resources/bin/darwin/yt-dlp` | New binary (~22MB) |
 | `resources/bin/darwin/ffmpeg` | New binary (~70-90MB) |
+| `resources/bin/darwin/ffprobe` | New binary (required by yt-dlp for audio extraction) |
 | `src/main/binary-path.ts` | Add `YTDLP` and `FFMPEG` exports |
 | `src/shared/types.ts` | Add `DownloadProgress` type |
 | `src/main/ipc-handlers.ts` | Add `download-audio` handler and `cancel-download` listener |
