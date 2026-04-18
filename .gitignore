@@ -94,3 +94,8 @@ dist/
 # Electron-Forge
 out/
 *.dmg
+
+# Large bundled binaries (fetched by scripts/fetch-binaries.sh)
+resources/bin/darwin/yt-dlp
+resources/bin/darwin/ffmpeg
+resources/bin/darwin/ffprobe

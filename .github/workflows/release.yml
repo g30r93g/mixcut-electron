@@ -9,6 +9,8 @@ env:
   LSMASH_REF: master
   M4ACUT_REF: master
   ATOMICPARSLEY_VERSION: '20240608.083822'
+  YTDLP_VERSION: '2025.12.08'
+  FFMPEG_VERSION: '8.1'
 
 jobs:
   build:
@@ -34,7 +36,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: resources/bin/darwin
-          key: native-bins-${{ runner.os }}-${{ runner.arch }}-lsmash-${{ env.LSMASH_REF }}-m4acut-${{ env.M4ACUT_REF }}-ap-${{ env.ATOMICPARSLEY_VERSION }}
+          key: native-bins-${{ runner.os }}-${{ runner.arch }}-lsmash-${{ env.LSMASH_REF }}-m4acut-${{ env.M4ACUT_REF }}-ap-${{ env.ATOMICPARSLEY_VERSION }}-ytdlp-${{ env.YTDLP_VERSION }}-ffmpeg-${{ env.FFMPEG_VERSION }}
 
       - name: Compile m4acut
         if: steps.native-cache.outputs.cache-hit != 'true'
@@ -59,6 +61,22 @@ jobs:
           brew install atomicparsley
           cp $(which AtomicParsley) resources/bin/darwin/AtomicParsley
           chmod +x resources/bin/darwin/AtomicParsley
+
+      - name: Install yt-dlp
+        if: steps.native-cache.outputs.cache-hit != 'true'
+        run: |
+          curl -L --fail --retry 3 \
+            "https://github.com/yt-dlp/yt-dlp/releases/download/$YTDLP_VERSION/yt-dlp_macos" \
+            -o resources/bin/darwin/yt-dlp
+          chmod +x resources/bin/darwin/yt-dlp
+
+      - name: Install ffmpeg and ffprobe
+        if: steps.native-cache.outputs.cache-hit != 'true'
+        run: |
+          brew install ffmpeg
+          cp "$(brew --prefix ffmpeg)/bin/ffmpeg" resources/bin/darwin/ffmpeg
+          cp "$(brew --prefix ffmpeg)/bin/ffprobe" resources/bin/darwin/ffprobe
+          chmod +x resources/bin/darwin/ffmpeg resources/bin/darwin/ffprobe
 
       - name: Build DMG
         run: pnpm run make
