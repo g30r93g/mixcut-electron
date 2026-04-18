@@ -18,11 +18,9 @@ function createWindow() {
     },
   });
 
-  mainWindow.webContents.on('before-input-event', (_event, input) => {
-    if (input.meta && (input.key === '=' || input.key === '+' || input.key === '-')) {
-      _event.preventDefault();
-    }
-  });
+  // Disable default window zoom so ⌘+=/- can be used for waveform zoom
+  mainWindow.webContents.setZoomFactor(1);
+  mainWindow.webContents.setVisualZoomLevelLimits(1, 1);
 
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
     mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
