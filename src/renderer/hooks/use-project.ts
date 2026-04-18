@@ -5,14 +5,17 @@ import { slugify } from '../../shared/strings';
 
 export function useProject() {
   const [project, setProject] = useState<ProjectState | null>(null);
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const saveTimeout = useRef<ReturnType<typeof setTimeout>>();
 
   useEffect(() => {
     if (!project) return;
     clearTimeout(saveTimeout.current);
     saveTimeout.current = setTimeout(() => {
-      const updated = { ...project, updatedAt: new Date().toISOString() };
+      const now = new Date();
+      const updated = { ...project, updatedAt: now.toISOString() };
       mixcut.saveProject(updated);
+      setLastSavedAt(now);
     }, 500);
     return () => clearTimeout(saveTimeout.current);
   }, [project]);
@@ -61,6 +64,7 @@ export function useProject() {
 
   return {
     project,
+    lastSavedAt,
     createProject,
     loadProject,
     updateTracks,
