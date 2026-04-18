@@ -42,6 +42,11 @@ export function registerIpcHandlers(dataDir: string) {
     return { path: filePath, name: path.basename(filePath) };
   });
 
+  ipcMain.handle('save-cue-file', async (_event, filePath: string, content: string) => {
+    await fs.mkdir(path.dirname(filePath), { recursive: true });
+    await fs.writeFile(filePath, content, 'utf-8');
+  });
+
   ipcMain.handle('select-output-dir', async () => {
     const result = await dialog.showOpenDialog({
       properties: ['openDirectory', 'createDirectory'],

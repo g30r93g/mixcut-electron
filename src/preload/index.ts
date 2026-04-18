@@ -15,6 +15,8 @@ const api = {
     ipcRenderer.invoke('open-cue-file'),
   openImageFile: (): Promise<{ path: string; name: string } | null> =>
     ipcRenderer.invoke('open-image-file'),
+  saveCueFile: (filePath: string, content: string): Promise<void> =>
+    ipcRenderer.invoke('save-cue-file', filePath, content),
   selectOutputDir: (): Promise<string | null> =>
     ipcRenderer.invoke('select-output-dir'),
 
