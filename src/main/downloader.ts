@@ -41,7 +41,10 @@ let activeDownload: { process: ChildProcess; tempDir: string } | null = null;
 
 export function cancelActiveDownload(): void {
   if (!activeDownload) return;
-  activeDownload.process.kill('SIGTERM');
+  const { process: child, tempDir } = activeDownload;
+  activeDownload = null;
+  child.kill('SIGTERM');
+  fs.rm(tempDir, { recursive: true, force: true }).catch(() => {});
 }
 
 // --- Main download function ---

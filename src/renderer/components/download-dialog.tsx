@@ -28,16 +28,17 @@ export function DownloadDialog({ open, onOpenChange, onComplete }: DownloadDialo
 
     try {
       const result = await mixcut.downloadAudio(trimmed);
-      onComplete(result.path, result.name, result.metadata);
-      // Reset state for next use
+      // Reset state and close before notifying consumer
       setUrl('');
       setIsDownloading(false);
       resetProgress();
+      onOpenChange(false);
+      onComplete(result.path, result.name, result.metadata);
     } catch (err: any) {
       setError(err?.message ?? 'Download failed');
       setIsDownloading(false);
     }
-  }, [url, onComplete, resetProgress]);
+  }, [url, onComplete, onOpenChange, resetProgress]);
 
   const handleCancel = useCallback(() => {
     mixcut.cancelDownload();
