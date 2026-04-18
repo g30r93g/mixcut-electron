@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Disc3, Clock } from 'lucide-react';
+import { Disc3, Clock, Trash2, Music } from 'lucide-react';
+import { BorderBeam } from './ui/border-beam';
+import { Button } from './ui/button';
+import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from './ui/context-menu';
+import { useImageColors } from '../hooks/use-image-colors';
 import { mixcut } from '../lib/mixcut-api';
 import type { ProjectSummary } from '../../shared/types';
+import logoSrc from '../../../resources/icon.png';
 
 interface OpenAudioProps {
   onAudioSelected: (path: string, name: string) => void;
@@ -81,6 +86,11 @@ export function OpenAudio({ onAudioSelected, onProjectSelected }: OpenAudioProps
     });
   }, []);
 
+  const handleDeleteProject = useCallback(async (id: string) => {
+    await mixcut.deleteProject(id);
+    setRecentProjects((prev) => prev.filter((p) => p.id !== id));
+  }, []);
+
   const formatDate = (iso: string) => {
     const d = new Date(iso);
     const now = new Date();
@@ -96,7 +106,8 @@ export function OpenAudio({ onAudioSelected, onProjectSelected }: OpenAudioProps
     <div className="flex h-full flex-col items-center justify-center px-8">
       <div className="w-full max-w-[440px]">
         {/* Header */}
-        <div className="mb-8 text-center">
+        <div className="mb-8 flex flex-col items-center">
+          <img src={logoSrc} alt="mixcut" className="mb-3 size-20" />
           <h1 className="text-[28px] font-semibold tracking-tight text-text">
             mixcut
           </h1>
@@ -106,37 +117,35 @@ export function OpenAudio({ onAudioSelected, onProjectSelected }: OpenAudioProps
         </div>
 
         {/* Drop zone */}
-        <button
-          type="button"
-          onClick={handleOpenFile}
-          onDrop={handleDrop}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
+        <div
+          className="relative"
           onMouseEnter={handleCardEnter}
           onMouseLeave={handleCardLeave}
-          className={`
-            no-drag group flex w-full cursor-pointer flex-col items-center rounded-2xl
-            border px-9 py-11 text-center transition-all duration-200
-            ${
-              isDragOver
-                ? 'border-accent/25 bg-accent/10'
-                : 'border-border bg-surface hover:border-border-strong hover:bg-surface-light'
-            }
-          `}
         >
-          <Disc3
-            ref={discRef}
-            className={`mb-4 size-9 transition-colors ${
-              isDragOver ? 'text-accent' : 'text-text-muted group-hover:text-accent'
-            } ${discSpinning ? 'disc-spinning' : ''}`}
-            style={discStyle}
-            strokeWidth={1.5}
-          />
-          <p className="text-base font-medium text-text">Open an audio file</p>
-          <p className="mt-1.5 font-mono text-[11px] text-text-muted">
-            Drop .m4a here or click to browse
-          </p>
-        </button>
+          <Button
+            variant="accent"
+            onClick={handleOpenFile}
+            onDrop={handleDrop}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            className={`group h-auto w-full flex-col rounded-2xl px-9 py-11 text-center transition-all duration-200
+              ${isDragOver ? 'border-accent/40 bg-accent/15' : ''}`}
+          >
+            <Disc3
+              ref={discRef}
+              className={`mb-4 size-9 transition-colors ${
+                isDragOver ? 'text-accent' : 'text-accent/70 group-hover:text-accent'
+              } ${discSpinning ? 'disc-spinning' : ''}`}
+              style={discStyle}
+              strokeWidth={1.5}
+            />
+            <p className="text-base font-medium text-text">Open an audio file</p>
+            <p className="mt-1.5 font-mono text-[11px] text-text-muted">
+              Drop .m4a here or click to browse
+            </p>
+          </Button>
+          <BorderBeam color="rgba(120, 160, 255, 0.6)" speed={100} borderRadius="16px" active={discSpinning || isDragOver} />
+        </div>
 
         {/* Recent projects */}
         {recentProjects.length > 0 && (
@@ -147,26 +156,113 @@ export function OpenAudio({ onAudioSelected, onProjectSelected }: OpenAudioProps
                 Recent
               </span>
             </div>
-            <div className="flex flex-col gap-1">
-              {recentProjects.slice(0, 5).map((project, i) => (
-                <button
+            <div className="flex flex-col gap-1.5">
+              {recentProjects.slice(0, 5).map((project) => (
+                <RecentProjectCard
                   key={project.id}
-                  type="button"
-                  onClick={() => onProjectSelected(project.id)}
-                  className={`no-drag flex items-center justify-between rounded-[10px]
-                    px-3.5 py-2.5 text-left transition-colors hover:bg-surface-light
-                    ${i === 0 ? 'border border-border bg-surface' : ''}`}
-                >
-                  <span className="text-[13px] text-text-secondary">{project.name}</span>
-                  <span className="font-mono text-[10px] text-text-faint">
-                    {formatDate(project.updatedAt)}
-                  </span>
-                </button>
+                  project={project}
+                  formatDate={formatDate}
+                  onSelect={() => onProjectSelected(project.id)}
+                  onDelete={() => handleDeleteProject(project.id)}
+                />
               ))}
             </div>
           </div>
         )}
       </div>
     </div>
+  );
+}
+
+function RecentProjectCard({
+  project,
+  formatDate,
+  onSelect,
+  onDelete,
+}: {
+  project: ProjectSummary;
+  formatDate: (iso: string) => string;
+  onSelect: () => void;
+  onDelete: () => void;
+}) {
+  const artworkUrl = project.artworkPath
+    ? mixcut.getImageUrl(project.artworkPath)
+    : undefined;
+  const colors = useImageColors(artworkUrl, project.title || project.name);
+
+  const style: React.CSSProperties = colors
+    ? {
+        backgroundColor: colors.bg,
+        border: `0.5px solid ${colors.accent}25`,
+      }
+    : {
+        border: '0.5px solid rgba(255, 255, 255, 0.06)',
+      };
+
+  const beamColor = colors?.accent ?? 'rgba(255, 255, 255, 0.15)';
+  const beamHead = colors?.accentLight ?? undefined;
+  const [hovered, setHovered] = useState(false);
+
+  return (
+    <ContextMenu>
+      <ContextMenuTrigger
+        className={`no-drag relative flex cursor-pointer items-center gap-3 rounded-[10px]
+          px-3.5 py-2.5 text-left transition-all
+          ${colors ? 'hover:brightness-125' : 'hover:bg-surface-light'}`}
+        style={style}
+        onClick={onSelect}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+      >
+        <BorderBeam color={beamColor} headColor={beamHead} speed={100} borderRadius="10px" active={hovered} />
+        {artworkUrl ? (
+          <img
+            src={artworkUrl}
+            alt=""
+            className="size-9 shrink-0 rounded-md object-cover"
+          />
+        ) : (
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-surface-light">
+            <Music className="size-4 text-text-faint" strokeWidth={1.5} />
+          </div>
+        )}
+        <div className="flex min-w-0 flex-1 flex-col">
+          <span
+            className="text-[13px]"
+            style={colors ? { color: colors.text } : undefined}
+          >
+            {project.title || project.name}
+          </span>
+          {project.performer && (
+            <span
+              className="font-mono text-[10px]"
+              style={colors ? { color: colors.textMuted } : undefined}
+            >
+              {project.performer}
+            </span>
+          )}
+        </div>
+        <div className="flex shrink-0 flex-col items-end gap-0.5">
+          <span
+            className="font-mono text-[10px]"
+            style={colors ? { color: colors.textMuted } : undefined}
+          >
+            {formatDate(project.updatedAt)}
+          </span>
+          <span
+            className="font-mono text-[10px]"
+            style={colors ? { color: colors.textMuted } : undefined}
+          >
+            {project.trackCount} {project.trackCount === 1 ? 'track' : 'tracks'}
+          </span>
+        </div>
+      </ContextMenuTrigger>
+      <ContextMenuContent>
+        <ContextMenuItem destructive onClick={onDelete}>
+          <Trash2 className="size-3.5" strokeWidth={1.5} />
+          Delete Project
+        </ContextMenuItem>
+      </ContextMenuContent>
+    </ContextMenu>
   );
 }
