@@ -10,7 +10,6 @@ interface MetadataEditorProps {
   onMetadataChange: (metadata: AlbumMetadata) => void;
   onArtworkChange: (path: string | undefined) => void;
   onOutputDirChange: (dir: string) => void;
-  onImportCue: () => void;
 }
 
 export function MetadataEditor({
@@ -20,7 +19,6 @@ export function MetadataEditor({
   onMetadataChange,
   onArtworkChange,
   onOutputDirChange,
-  onImportCue,
 }: MetadataEditorProps) {
   const updateField = useCallback(
     (field: keyof AlbumMetadata, value: string) => {
@@ -42,7 +40,7 @@ export function MetadataEditor({
   return (
     <div className="overflow-hidden rounded-xl border border-border bg-surface">
       <div className="border-b border-border px-4 py-3">
-        <span className="font-mono text-[9px] tracking-[0.2em] text-text-faint uppercase">
+        <span className="font-mono text-[10px] font-semibold tracking-[0.2em] text-text-muted uppercase">
           Album Details
         </span>
       </div>
@@ -102,16 +100,6 @@ export function MetadataEditor({
           </button>
         </div>
 
-        {/* Import CUE */}
-        <button
-          type="button"
-          onClick={onImportCue}
-          className="no-drag flex items-center justify-center rounded-lg border border-border-strong
-            bg-surface py-2 font-mono text-[9px] tracking-[0.15em] text-text-muted uppercase
-            transition-colors hover:border-accent/25 hover:bg-accent/10 hover:text-accent"
-        >
-          Import .cue
-        </button>
       </div>
     </div>
   );
@@ -130,7 +118,7 @@ function Field({
 }) {
   return (
     <label className="no-drag flex flex-col gap-1">
-      <span className="font-mono text-[9px] tracking-[0.15em] text-text-faint uppercase">
+      <span className="font-mono text-[10px] tracking-[0.15em] text-text-muted uppercase">
         {label}
       </span>
       <input

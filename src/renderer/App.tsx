@@ -14,6 +14,7 @@ type Step = 'open' | 'edit' | 'processing' | 'done';
 export function App() {
   const {
     project,
+    lastSavedAt,
     createProject,
     loadProject,
     updateTracks,
@@ -112,6 +113,7 @@ export function App() {
             onOutputDirChange={setOutputDir}
             onCutTracks={handleCutTracks}
             onBack={handleNewSession}
+            lastSavedAt={lastSavedAt}
             disabled={showProcessingModal || showDoneModal}
           />
         )}
@@ -119,7 +121,7 @@ export function App() {
 
       {/* Modal overlays */}
       {showProcessingModal && <ProcessingModal progress={progress} />}
-      {showDoneModal && <DoneModal progress={progress} onNewSession={handleNewSession} />}
+      {showDoneModal && <DoneModal progress={progress} onNewSession={handleNewSession} onDismiss={() => setStep('edit')} />}
     </div>
   );
 }

@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
+import { Button } from './ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
+import { Kbd } from './ui/kbd';
 import type { CueTrack } from '../../shared/types';
 import { formatTime, parseTime } from '../lib/time';
 
@@ -93,22 +96,28 @@ export function TracklistEditor({
   }, [tracks.length]);
 
   return (
-    <div className="overflow-hidden rounded-xl border border-border bg-surface">
+    <div className="flex flex-col overflow-hidden rounded-xl border border-border bg-surface">
       {/* Header */}
-      <div className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-surface px-4 py-3">
-        <span className="font-mono text-[9px] tracking-[0.2em] text-text-faint uppercase">
+      <div className="flex shrink-0 items-center justify-between border-b border-border px-4 py-3">
+        <span className="font-mono text-[10px] font-semibold tracking-[0.2em] text-text-muted uppercase">
           Tracklist
         </span>
-        <button
-          type="button"
-          onClick={() => onAddTrack(null)}
-          className="no-drag flex items-center gap-1.5 rounded-md bg-surface-light px-2.5 py-1
-            font-mono text-[9px] tracking-[0.15em] text-text-muted uppercase
-            transition-colors hover:bg-accent/10 hover:text-accent"
-        >
-          <Plus className="size-2.5" strokeWidth={2.5} />
-          Add
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="muted"
+              size="sm"
+              onClick={() => onAddTrack(null)}
+              className="tracking-[0.15em] uppercase"
+            >
+              <Plus className="size-2.5" strokeWidth={2.5} />
+              Add
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <span className="flex items-center gap-1.5">Add track at playhead <Kbd>⌘</Kbd><Kbd>↩</Kbd></span>
+          </TooltipContent>
+        </Tooltip>
       </div>
 
       {sortedTracks.length === 0 ? (
@@ -118,7 +127,7 @@ export function TracklistEditor({
           </p>
         </div>
       ) : (
-        <div>
+        <div className="overflow-y-auto">
           {sortedTracks.map((track, sortedIdx) => {
             const idx = getOriginalIndex(track.trackNumber);
             const isActive = track.trackNumber === activeTrackNumber;

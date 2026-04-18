@@ -1,4 +1,5 @@
-import { Pause, Play, ZoomIn, ZoomOut, SkipBack, SkipForward } from 'lucide-react';
+import { Loader2, Pause, Play, ZoomIn, ZoomOut, SkipBack, SkipForward } from 'lucide-react';
+import { Button } from './ui/button';
 import {
   forwardRef,
   useCallback,
@@ -12,6 +13,8 @@ import {
 import WaveSurfer from 'wavesurfer.js';
 import TimelinePlugin from 'wavesurfer.js/dist/plugins/timeline.esm.js';
 import RegionsPlugin from 'wavesurfer.js/dist/plugins/regions.esm.js';
+import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
+import { Kbd } from './ui/kbd';
 import type { CueTrack } from '../../shared/types';
 import { mixcut } from '../lib/mixcut-api';
 import { formatTime } from '../lib/time';
@@ -200,24 +203,35 @@ export const TrackWaveform = forwardRef<TrackWaveformHandle, TrackWaveformProps>
       <div className="rounded-xl border border-border bg-surface p-5">
         <div className="waveform-wrapper no-drag relative mb-10">
           <div ref={containerRef} className="relative h-30 w-full" />
+          {!isReady && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Loader2 className="size-8 animate-spin text-text-muted" strokeWidth={1.5} />
+            </div>
+          )}
         </div>
 
         <div className="no-drag flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={togglePlayback}
-              disabled={!isReady}
-              className="flex size-8 items-center justify-center rounded-full border border-border
-                bg-surface-light transition-colors hover:border-border-strong
-                disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              {isPlaying ? (
-                <Pause className="size-3 text-text" fill="currentColor" stroke="none" />
-              ) : (
-                <Play className="ml-0.5 size-3 text-text" fill="currentColor" stroke="none" />
-              )}
-            </button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={togglePlayback}
+                  disabled={!isReady}
+                  className="size-8 rounded-full border border-border bg-surface-light hover:border-border-strong"
+                >
+                  {isPlaying ? (
+                    <Pause className="size-3 shrink-0 text-text" fill="currentColor" stroke="none" />
+                  ) : (
+                    <Play className="ml-0.5 size-3 shrink-0 text-text" fill="currentColor" stroke="none" />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <span className="flex items-center gap-1.5">{isPlaying ? 'Pause' : 'Play'} <Kbd>⌘</Kbd><Kbd>Space</Kbd></span>
+              </TooltipContent>
+            </Tooltip>
             <span className="font-mono text-[11px] text-text-muted">
               <span className="text-text-secondary">{formatTime(currentMs)}</span>
               <span className="mx-1 text-text-faint">/</span>
@@ -225,56 +239,81 @@ export const TrackWaveform = forwardRef<TrackWaveformHandle, TrackWaveformProps>
             </span>
 
             <div className="flex items-center gap-0.5">
-              {[30, 15, 5].map((s) => (
-                <button
-                  key={`back-${s}`}
-                  type="button"
-                  onClick={() => skip(-s)}
-                  disabled={!isReady}
-                  title={`Back ${s}s`}
-                  className="relative flex size-7 items-center justify-center rounded-md
-                    text-text-faint transition-colors hover:bg-surface-light hover:text-text-secondary
-                    disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  <SkipBack className="size-3" strokeWidth={1.5} />
-                  <span className="absolute -bottom-0.5 font-mono text-[7px]">{s}</span>
-                </button>
-              ))}
-              {[5, 15, 30].map((s) => (
-                <button
-                  key={`fwd-${s}`}
-                  type="button"
-                  onClick={() => skip(s)}
-                  disabled={!isReady}
-                  title={`Forward ${s}s`}
-                  className="relative flex size-7 items-center justify-center rounded-md
-                    text-text-faint transition-colors hover:bg-surface-light hover:text-text-secondary
-                    disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  <SkipForward className="size-3" strokeWidth={1.5} />
-                  <span className="absolute -bottom-0.5 font-mono text-[7px]">{s}</span>
-                </button>
-              ))}
+              {([30, 15, 5] as const).map((s) => {
+                const mod = s === 30 ? '⌘' : s === 15 ? '⇧' : undefined;
+                return (
+                  <Tooltip key={`back-${s}`}>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => skip(-s)}
+                        disabled={!isReady}
+                        className="relative text-text-faint hover:text-text-secondary"
+                      >
+                        <SkipBack className="size-3" strokeWidth={1.5} />
+                        <span className="absolute -bottom-0.5 font-mono text-[7px]">{s}</span>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <span className="flex items-center gap-1.5">
+                        Back {s}s {mod && <Kbd>{mod}</Kbd>}<Kbd>←</Kbd>
+                      </span>
+                    </TooltipContent>
+                  </Tooltip>
+                );
+              })}
+              {([5, 15, 30] as const).map((s) => {
+                const mod = s === 30 ? '⌘' : s === 15 ? '⇧' : undefined;
+                return (
+                  <Tooltip key={`fwd-${s}`}>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => skip(s)}
+                        disabled={!isReady}
+                        className="relative text-text-faint hover:text-text-secondary"
+                      >
+                        <SkipForward className="size-3" strokeWidth={1.5} />
+                        <span className="absolute -bottom-0.5 font-mono text-[7px]">{s}</span>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <span className="flex items-center gap-1.5">
+                        Forward {s}s {mod && <Kbd>{mod}</Kbd>}<Kbd>→</Kbd>
+                      </span>
+                    </TooltipContent>
+                  </Tooltip>
+                );
+              })}
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <ZoomOut className="size-3 text-text-faint" strokeWidth={1.5} />
-            <input
-              type="range"
-              min={5}
-              max={400}
-              step={10}
-              value={minPxPerSec}
-              onChange={handleZoomChange}
-              disabled={!isReady}
-              className="no-drag h-0.75 w-20 cursor-pointer appearance-none rounded-full
-                bg-border disabled:cursor-not-allowed disabled:opacity-40
-                [&::-webkit-slider-thumb]:size-2.5 [&::-webkit-slider-thumb]:appearance-none
-                [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-accent"
-            />
-            <ZoomIn className="size-3 text-text-faint" strokeWidth={1.5} />
-          </div>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="flex items-center gap-2">
+                <ZoomOut className="size-3 text-text-faint" strokeWidth={1.5} />
+                <input
+                  type="range"
+                  min={5}
+                  max={400}
+                  step={10}
+                  value={minPxPerSec}
+                  onChange={handleZoomChange}
+                  disabled={!isReady}
+                  className="no-drag h-0.75 w-20 cursor-pointer appearance-none rounded-full
+                    bg-border disabled:cursor-not-allowed disabled:opacity-40
+                    [&::-webkit-slider-thumb]:size-2.5 [&::-webkit-slider-thumb]:appearance-none
+                    [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-accent"
+                />
+                <ZoomIn className="size-3 text-text-faint" strokeWidth={1.5} />
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <span className="flex items-center gap-1.5">Zoom <Kbd>⌘</Kbd><Kbd>-</Kbd> / <Kbd>⌘</Kbd><Kbd>+</Kbd></span>
+            </TooltipContent>
+          </Tooltip>
         </div>
       </div>
     );
