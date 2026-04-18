@@ -38,9 +38,11 @@ export function parseDownloadPercent(line: string): number | null {
 // --- Download state ---
 
 let activeDownload: { process: ChildProcess; tempDir: string } | null = null;
+let cancelled = false;
 
 export function cancelActiveDownload(): void {
   if (!activeDownload) return;
+  cancelled = true;
   const { process: child, tempDir } = activeDownload;
   activeDownload = null;
   child.kill('SIGTERM');
@@ -74,6 +76,8 @@ export async function downloadAudio(
   if (activeDownload) {
     throw new Error('A download is already in progress.');
   }
+
+  cancelled = false;
 
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'mixcut-dl-'));
 
@@ -161,7 +165,9 @@ export async function downloadAudio(
 
     return result;
   } catch (err: any) {
-    sendProgress(window, { stage: 'error', message: err.message ?? 'Download failed' });
+    if (!cancelled) {
+      sendProgress(window, { stage: 'error', message: err.message ?? 'Download failed' });
+    }
     throw err;
   } finally {
     activeDownload = null;

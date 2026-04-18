@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Download, Loader2, AlertCircle } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 import { Button } from './ui/button';
@@ -16,29 +16,6 @@ export function DownloadDialog({ open, onOpenChange, onComplete }: DownloadDialo
   const [isDownloading, setIsDownloading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { progress, reset: resetProgress } = useDownloadProgress();
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  const handleDownload = useCallback(async () => {
-    const trimmed = url.trim();
-    if (!trimmed) return;
-
-    setError(null);
-    setIsDownloading(true);
-    resetProgress();
-
-    try {
-      const result = await mixcut.downloadAudio(trimmed);
-      // Reset state and close before notifying consumer
-      setUrl('');
-      setIsDownloading(false);
-      resetProgress();
-      onOpenChange(false);
-      onComplete(result.path, result.name, result.metadata);
-    } catch (err: any) {
-      setError(err?.message ?? 'Download failed');
-      setIsDownloading(false);
-    }
-  }, [url, onComplete, onOpenChange, resetProgress]);
 
   const handleCancel = useCallback(() => {
     mixcut.cancelDownload();
@@ -62,6 +39,25 @@ export function DownloadDialog({ open, onOpenChange, onComplete }: DownloadDialo
     },
     [isDownloading, handleCancel, onOpenChange, resetProgress],
   );
+
+  const handleDownload = useCallback(async () => {
+    const trimmed = url.trim();
+    if (!trimmed) return;
+
+    setError(null);
+    setIsDownloading(true);
+    resetProgress();
+
+    try {
+      const result = await mixcut.downloadAudio(trimmed);
+      setIsDownloading(false);
+      handleOpenChange(false);
+      onComplete(result.path, result.name, result.metadata);
+    } catch (err: any) {
+      setError(err?.message ?? 'Download failed');
+      setIsDownloading(false);
+    }
+  }, [url, onComplete, handleOpenChange, resetProgress]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -89,7 +85,6 @@ export function DownloadDialog({ open, onOpenChange, onComplete }: DownloadDialo
         <div className="mt-4 flex flex-col gap-4">
           {/* URL input */}
           <input
-            ref={inputRef}
             type="url"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
