@@ -4,6 +4,7 @@ import path from 'node:path';
 import { ProjectStore } from './project-store';
 import { readPreferences, writePreferences } from './preferences';
 import { cutTracks, CutTracksParams } from './processor';
+import { downloadAudio, cancelActiveDownload } from './downloader';
 import type { Preferences, ProjectState } from '../shared/types';
 
 export function registerIpcHandlers(dataDir: string) {
@@ -60,6 +61,17 @@ export function registerIpcHandlers(dataDir: string) {
     const window = BrowserWindow.fromWebContents(event.sender);
     if (!window) throw new Error('No window found');
     await cutTracks(window, params);
+  });
+
+  // Download
+  ipcMain.handle('download-audio', async (event, url: string) => {
+    const window = BrowserWindow.fromWebContents(event.sender);
+    if (!window) throw new Error('No window found');
+    return downloadAudio(window, url);
+  });
+
+  ipcMain.on('cancel-download', () => {
+    cancelActiveDownload();
   });
 
   // Output
