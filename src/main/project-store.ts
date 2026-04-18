@@ -35,7 +35,15 @@ export class ProjectStore {
         try {
           const raw = await fs.readFile(filePath, 'utf-8');
           const project = JSON.parse(raw) as ProjectState;
-          summaries.push({ id: project.id, name: project.name, updatedAt: project.updatedAt });
+          summaries.push({
+            id: project.id,
+            name: project.name,
+            title: project.metadata.title || undefined,
+            performer: project.metadata.performer || undefined,
+            trackCount: project.tracks.length,
+            artworkPath: project.artworkPath,
+            updatedAt: project.updatedAt,
+          });
         } catch { /* skip corrupt files */ }
       }
       return summaries.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());

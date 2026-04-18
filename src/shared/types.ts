@@ -40,6 +40,10 @@ export interface ProjectState {
 export interface ProjectSummary {
   id: string;
   name: string;
+  title?: string;
+  performer?: string;
+  trackCount: number;
+  artworkPath?: string;
   updatedAt: string;
 }
 
