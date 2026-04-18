@@ -10,10 +10,10 @@
   --color-border: #1e1e2a;
   --color-border-strong: #2a2a38;
 
-  --color-text: #e2e2e8;
-  --color-text-secondary: #9999a8;
-  --color-text-muted: #5e5e6e;
-  --color-text-faint: #3d3d4d;
+  --color-text: #eaeaef;
+  --color-text-secondary: #b0b0be;
+  --color-text-muted: #9494a8;
+  --color-text-faint: #6e6e85;
 
   --color-accent: #78a0ff;
   --color-accent-dim: #5070cc;
@@ -62,6 +62,15 @@ label, .no-drag {
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-text-faint);
+}
+
+@keyframes disc-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.disc-spinning {
+  animation: disc-spin 1.5s linear infinite;
 }
 
 /* Hide scrollbar on WaveSurfer waveform */

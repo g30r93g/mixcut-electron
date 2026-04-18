@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Disc3, Clock } from 'lucide-react';
 import { mixcut } from '../lib/mixcut-api';
 import type { ProjectSummary } from '../../shared/types';
@@ -44,6 +44,43 @@ export function OpenAudio({ onAudioSelected, onProjectSelected }: OpenAudioProps
     setIsDragOver(false);
   }, []);
 
+  const [discSpinning, setDiscSpinning] = useState(false);
+  const [discStyle, setDiscStyle] = useState<React.CSSProperties>({});
+  const discRef = useRef<SVGSVGElement>(null);
+
+  const handleCardEnter = useCallback(() => {
+    setDiscStyle({});
+    setDiscSpinning(true);
+  }, []);
+
+  const handleCardLeave = useCallback(() => {
+    const el = discRef.current;
+    if (!el) return;
+    const computed = getComputedStyle(el);
+    const matrix = computed.transform;
+    // Extract current angle from transform matrix
+    let angle = 0;
+    if (matrix && matrix !== 'none') {
+      const values = matrix.match(/matrix\((.+)\)/)?.[1].split(', ');
+      if (values) {
+        angle = Math.atan2(parseFloat(values[1]), parseFloat(values[0])) * (180 / Math.PI);
+        if (angle < 0) angle += 360;
+      }
+    }
+    // Stop the animation and set current angle, then transition to nearest full rotation
+    setDiscSpinning(false);
+    const target = Math.ceil(angle / 360) * 360;
+    setDiscStyle({ transform: `rotate(${angle}deg)`, transition: 'none' });
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setDiscStyle({
+          transform: `rotate(${target}deg)`,
+          transition: 'transform 0.8s cubic-bezier(0.2, 0, 0.1, 1)',
+        });
+      });
+    });
+  }, []);
+
   const formatDate = (iso: string) => {
     const d = new Date(iso);
     const now = new Date();
@@ -75,6 +112,8 @@ export function OpenAudio({ onAudioSelected, onProjectSelected }: OpenAudioProps
           onDrop={handleDrop}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
+          onMouseEnter={handleCardEnter}
+          onMouseLeave={handleCardLeave}
           className={`
             no-drag group flex w-full cursor-pointer flex-col items-center rounded-2xl
             border px-9 py-11 text-center transition-all duration-200
@@ -86,9 +125,11 @@ export function OpenAudio({ onAudioSelected, onProjectSelected }: OpenAudioProps
           `}
         >
           <Disc3
+            ref={discRef}
             className={`mb-4 size-9 transition-colors ${
               isDragOver ? 'text-accent' : 'text-text-muted group-hover:text-accent'
-            }`}
+            } ${discSpinning ? 'disc-spinning' : ''}`}
+            style={discStyle}
             strokeWidth={1.5}
           />
           <p className="text-base font-medium text-text">Open an audio file</p>
