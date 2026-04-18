@@ -28,8 +28,8 @@ export function App() {
   const [step, setStep] = useState<Step>('open');
 
   const handleAudioSelected = useCallback(
-    async (path: string, name: string) => {
-      await createProject(path, name);
+    async (path: string, name: string, metadata?: { title?: string; artist?: string }) => {
+      await createProject(path, name, metadata);
       setStep('edit');
     },
     [createProject],

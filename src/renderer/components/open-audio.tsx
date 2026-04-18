@@ -9,7 +9,7 @@ import type { ProjectSummary } from '../../shared/types';
 import logoSrc from '../../../resources/icon.png';
 
 interface OpenAudioProps {
-  onAudioSelected: (path: string, name: string) => void;
+  onAudioSelected: (path: string, name: string, metadata?: { title?: string; artist?: string }) => void;
   onProjectSelected: (id: string) => void;
 }
 
