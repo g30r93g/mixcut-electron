@@ -42,7 +42,9 @@ body {
 }
 
 button, input, textarea, select, a, [role="button"],
-label, .no-drag {
+label, .no-drag,
+[data-radix-popper-content-wrapper],
+[data-radix-menu-content] {
   -webkit-app-region: no-drag;
 }
 

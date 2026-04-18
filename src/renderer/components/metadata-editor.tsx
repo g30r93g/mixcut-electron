@@ -61,17 +61,21 @@ export function MetadataEditor({
                 alt="Cover artwork"
                 className="size-full object-cover"
               />
-              <button
-                type="button"
+              <div
+                role="button"
+                tabIndex={0}
                 onClick={(e) => {
                   e.stopPropagation();
                   onArtworkChange(undefined);
                 }}
-                className="absolute right-1 top-1 rounded-full bg-black/60 p-0.5
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') { e.stopPropagation(); onArtworkChange(undefined); }
+                }}
+                className="absolute right-1 top-1 cursor-pointer rounded-full bg-black/60 p-0.5
                   opacity-0 transition-opacity group-hover:opacity-100"
               >
                 <X className="size-2.5 text-white" />
-              </button>
+              </div>
             </>
           ) : (
             <Image className="size-5 text-text-faint group-hover:text-accent" strokeWidth={1.5} />

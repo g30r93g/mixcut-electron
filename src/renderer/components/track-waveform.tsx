@@ -142,7 +142,9 @@ export const TrackWaveform = forwardRef<TrackWaveformHandle, TrackWaveformProps>
       setIsReady(false);
       setIsPlaying(false);
       const url = mixcut.getAudioUrl(audioPath);
-      instance.load(url);
+      instance.load(url).catch(() => {
+        // AbortError when StrictMode remounts — safe to ignore
+      });
     }, [audioPath]);
 
     useEffect(() => {
