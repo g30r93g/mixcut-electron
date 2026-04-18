@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Disc3, Clock, Trash2, Music } from 'lucide-react';
+import { Disc3, Clock, Trash2, Music, Download } from 'lucide-react';
 import { BorderBeam } from './ui/border-beam';
 import { Button } from './ui/button';
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from './ui/context-menu';
+import { DownloadDialog } from './download-dialog';
 import { useImageColors } from '../hooks/use-image-colors';
 import { mixcut } from '../lib/mixcut-api';
 import type { ProjectSummary } from '../../shared/types';
@@ -16,6 +17,15 @@ interface OpenAudioProps {
 export function OpenAudio({ onAudioSelected, onProjectSelected }: OpenAudioProps) {
   const [recentProjects, setRecentProjects] = useState<ProjectSummary[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [downloadOpen, setDownloadOpen] = useState(false);
+
+  const handleDownloadComplete = useCallback(
+    (path: string, name: string, metadata: { title?: string; artist?: string }) => {
+      setDownloadOpen(false);
+      onAudioSelected(path, name, metadata);
+    },
+    [onAudioSelected],
+  );
 
   useEffect(() => {
     mixcut.listProjects().then(setRecentProjects);
@@ -146,6 +156,22 @@ export function OpenAudio({ onAudioSelected, onProjectSelected }: OpenAudioProps
           </Button>
           <BorderBeam color="rgba(120, 160, 255, 0.6)" speed={100} borderRadius="16px" active={discSpinning || isDragOver} />
         </div>
+
+        {/* Download from URL */}
+        <Button
+          variant="ghost"
+          onClick={() => setDownloadOpen(true)}
+          className="mt-3 w-full gap-2"
+        >
+          <Download className="size-3.5" strokeWidth={1.5} />
+          Download from URL
+        </Button>
+
+        <DownloadDialog
+          open={downloadOpen}
+          onOpenChange={setDownloadOpen}
+          onComplete={handleDownloadComplete}
+        />
 
         {/* Recent projects */}
         {recentProjects.length > 0 && (
