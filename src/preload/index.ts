@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import type {
   CutProgress,
+  DownloadProgress,
   Preferences,
   ProjectState,
   ProjectSummary,
@@ -35,6 +36,18 @@ const api = {
     ipcRenderer.on('cut-progress', handler);
     return () => ipcRenderer.removeListener('cut-progress', handler);
   },
+
+  // Download
+  downloadAudio: (url: string): Promise<{ path: string; name: string; metadata: { title?: string; artist?: string } }> =>
+    ipcRenderer.invoke('download-audio', url),
+  onDownloadProgress: (callback: (progress: DownloadProgress) => void): (() => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, progress: DownloadProgress) =>
+      callback(progress);
+    ipcRenderer.on('download-progress', handler);
+    return () => ipcRenderer.removeListener('download-progress', handler);
+  },
+  cancelDownload: (): void =>
+    ipcRenderer.send('cancel-download'),
 
   // Output
   openInFinder: (dirPath: string): void =>
