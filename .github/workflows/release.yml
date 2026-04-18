@@ -4,6 +4,12 @@ on:
   push:
     tags: ['v*']
 
+env:
+  # Pin versions for cache keys — bump these to force a rebuild
+  LSMASH_REF: master
+  M4ACUT_REF: master
+  ATOMICPARSLEY_VERSION: '20240608.083822'
+
 jobs:
   build:
     runs-on: macos-latest
@@ -23,7 +29,15 @@ jobs:
 
       - run: pnpm test
 
+      - name: Cache native binaries
+        id: native-cache
+        uses: actions/cache@v4
+        with:
+          path: resources/bin/darwin
+          key: native-bins-${{ runner.os }}-${{ runner.arch }}-lsmash-${{ env.LSMASH_REF }}-m4acut-${{ env.M4ACUT_REF }}-ap-${{ env.ATOMICPARSLEY_VERSION }}
+
       - name: Compile m4acut
+        if: steps.native-cache.outputs.cache-hit != 'true'
         run: |
           brew install automake libtool
           git clone https://github.com/l-smash/l-smash.git /tmp/l-smash
@@ -40,6 +54,7 @@ jobs:
           chmod +x $GITHUB_WORKSPACE/resources/bin/darwin/m4acut
 
       - name: Install AtomicParsley
+        if: steps.native-cache.outputs.cache-hit != 'true'
         run: |
           brew install atomicparsley
           cp $(which AtomicParsley) resources/bin/darwin/AtomicParsley
