@@ -15,9 +15,15 @@ export function buildProcessorArgs(cuePath: string, audioPath: string): string[]
 }
 
 interface AtomicParsleyOptions {
-  artworkPath?: string;
+  title?: string;
+  artist?: string;
+  album?: string;
+  albumArtist?: string;
+  tracknum?: string;
   genre?: string;
   year?: string;
+  gapless?: boolean;
+  artworkPath?: string;
 }
 
 export function buildAtomicParsleyArgs(
@@ -25,15 +31,15 @@ export function buildAtomicParsleyArgs(
   options: AtomicParsleyOptions,
 ): string[] {
   const args = [filePath];
-  if (options.artworkPath) {
-    args.push('--artwork', options.artworkPath);
-  }
-  if (options.genre) {
-    args.push('--genre', options.genre);
-  }
-  if (options.year) {
-    args.push('--year', options.year);
-  }
+  if (options.title) args.push('--title', options.title);
+  if (options.artist) args.push('--artist', options.artist);
+  if (options.album) args.push('--album', options.album);
+  if (options.albumArtist) args.push('--albumArtist', options.albumArtist);
+  if (options.tracknum) args.push('--tracknum', options.tracknum);
+  if (options.genre) args.push('--genre', options.genre);
+  if (options.year) args.push('--year', options.year);
+  if (options.gapless != null) args.push('--gapless', String(options.gapless));
+  if (options.artworkPath) args.push('--artwork', options.artworkPath);
   args.push('--overWrite');
   return args;
 }
@@ -81,20 +87,23 @@ export async function cutTracks(
       .map((f) => path.join(workDir, f));
 
     // 4. Apply metadata to each track
+    const sortedTracks = [...tracks].sort((a, b) => a.trackNumber - b.trackNumber);
     for (let i = 0; i < outputFiles.length; i++) {
       sendProgress(window, { stage: 'tagging', trackNumber: i + 1, totalTracks: outputFiles.length });
       const filePath = outputFiles[i];
+      const track = sortedTracks[i];
 
-      if (artworkPath) {
-        await execFileAsync(ATOMIC_PARSLEY(), buildAtomicParsleyArgs(filePath, { artworkPath }));
-      }
+      const flags: AtomicParsleyOptions = { gapless: true };
+      if (track?.title?.trim()) flags.title = track.title.trim();
+      if (track?.performer?.trim()) flags.artist = track.performer.trim();
+      if (metadata.title?.trim()) flags.album = metadata.title.trim();
+      if (metadata.performer?.trim()) flags.albumArtist = metadata.performer.trim();
+      flags.tracknum = `${i + 1}/${outputFiles.length}`;
+      if (metadata.genre?.trim()) flags.genre = metadata.genre.trim();
+      if (metadata.releaseYear?.trim()) flags.year = metadata.releaseYear.trim();
+      if (artworkPath) flags.artworkPath = artworkPath;
 
-      const metadataFlags: AtomicParsleyOptions = {};
-      if (metadata.genre?.trim()) metadataFlags.genre = metadata.genre.trim();
-      if (metadata.releaseYear?.trim()) metadataFlags.year = metadata.releaseYear.trim();
-      if (metadataFlags.genre || metadataFlags.year) {
-        await execFileAsync(ATOMIC_PARSLEY(), buildAtomicParsleyArgs(filePath, metadataFlags));
-      }
+      await execFileAsync(ATOMIC_PARSLEY(), buildAtomicParsleyArgs(filePath, flags));
     }
 
     // 5. Move to output directory
