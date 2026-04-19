@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Disc3, Clock, Trash2, Music, Download } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Disc3, Clock, Trash2, Music, Download, ChevronLeft, ChevronRight } from 'lucide-react';
 import { BorderBeam } from './ui/border-beam';
 import { Button } from './ui/button';
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from './ui/context-menu';
@@ -175,26 +175,82 @@ export function OpenAudio({ onAudioSelected, onProjectSelected }: OpenAudioProps
 
         {/* Recent projects */}
         {recentProjects.length > 0 && (
-          <div className="mt-8">
-            <div className="mb-2.5 flex items-center gap-2 px-1">
-              <Clock className="size-3 text-text-faint" strokeWidth={1.5} />
-              <span className="font-mono text-[9px] tracking-[0.2em] text-text-faint uppercase">
-                Recent
-              </span>
-            </div>
-            <div className="flex flex-col gap-1.5">
-              {recentProjects.slice(0, 5).map((project) => (
-                <RecentProjectCard
-                  key={project.id}
-                  project={project}
-                  formatDate={formatDate}
-                  onSelect={() => onProjectSelected(project.id)}
-                  onDelete={() => handleDeleteProject(project.id)}
-                />
-              ))}
-            </div>
+          <RecentProjectsList
+            projects={recentProjects}
+            formatDate={formatDate}
+            onProjectSelected={onProjectSelected}
+            onDeleteProject={handleDeleteProject}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+const PAGE_SIZE = 5;
+
+function RecentProjectsList({
+  projects,
+  formatDate,
+  onProjectSelected,
+  onDeleteProject,
+}: {
+  projects: ProjectSummary[];
+  formatDate: (iso: string) => string;
+  onProjectSelected: (id: string) => void;
+  onDeleteProject: (id: string) => void;
+}) {
+  const [page, setPage] = useState(0);
+  const totalPages = Math.ceil(projects.length / PAGE_SIZE);
+  const pageProjects = useMemo(
+    () => projects.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE),
+    [projects, page],
+  );
+
+  // Reset to last valid page if projects are deleted
+  useEffect(() => {
+    if (page >= totalPages && totalPages > 0) setPage(totalPages - 1);
+  }, [page, totalPages]);
+
+  return (
+    <div className="mt-8">
+      <div className="mb-2.5 flex items-center gap-2 px-1">
+        <Clock className="size-3 text-text-faint" strokeWidth={1.5} />
+        <span className="font-mono text-[9px] tracking-[0.2em] text-text-faint uppercase">
+          Recent
+        </span>
+        {totalPages > 1 && (
+          <div className="ml-auto flex items-center gap-1">
+            <button
+              onClick={() => setPage((p) => Math.max(0, p - 1))}
+              disabled={page === 0}
+              className="rounded p-0.5 text-text-faint transition-colors hover:text-text disabled:opacity-30"
+            >
+              <ChevronLeft className="size-3" strokeWidth={1.5} />
+            </button>
+            <span className="font-mono text-[9px] text-text-faint">
+              {page + 1}/{totalPages}
+            </span>
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+              disabled={page === totalPages - 1}
+              className="rounded p-0.5 text-text-faint transition-colors hover:text-text disabled:opacity-30"
+            >
+              <ChevronRight className="size-3" strokeWidth={1.5} />
+            </button>
           </div>
         )}
+      </div>
+      <div className="flex flex-col gap-1.5">
+        {pageProjects.map((project) => (
+          <RecentProjectCard
+            key={project.id}
+            project={project}
+            formatDate={formatDate}
+            onSelect={() => onProjectSelected(project.id)}
+            onDelete={() => onDeleteProject(project.id)}
+          />
+        ))}
       </div>
     </div>
   );

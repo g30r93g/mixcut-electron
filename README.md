@@ -4,6 +4,8 @@ A macOS desktop app for splitting `.m4a` audio files into individual tracks usin
 
 Drop in a long audio file, mark track boundaries on the waveform (or import a `.cue` file), and mixcut splits it into tagged `.m4a` tracks using [m4acut](https://github.com/nu774/m4acut) and [AtomicParsley](https://github.com/wez/atomicparsley).
 
+![mixcut editor](resources/screenshots/editor.png)
+
 ## Download
 
 Download the latest `.dmg` from the [Releases](../../releases) page.
