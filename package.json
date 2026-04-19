@@ -1,7 +1,7 @@
 {
   "name": "mixcut",
   "productName": "mixcut",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Audio splitter for .m4a files using CUE sheets",
   "main": ".vite/build/main.js",
   "private": true,
