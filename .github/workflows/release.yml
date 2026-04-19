@@ -76,7 +76,7 @@ jobs:
           brew install ffmpeg
           cp "$(brew --prefix ffmpeg)/bin/ffmpeg" resources/bin/darwin/ffmpeg
           cp "$(brew --prefix ffmpeg)/bin/ffprobe" resources/bin/darwin/ffprobe
-          chmod +x resources/bin/darwin/ffmpeg resources/bin/darwin/ffprobe
+          chmod 755 resources/bin/darwin/ffmpeg resources/bin/darwin/ffprobe
 
       - name: Build DMG
         run: pnpm run make

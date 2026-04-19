@@ -41,7 +41,7 @@ else
   fi
   cp "$FFMPEG_BIN" "$BIN_DIR/ffmpeg"
   cp "$FFPROBE_BIN" "$BIN_DIR/ffprobe"
-  chmod +x "$BIN_DIR/ffmpeg" "$BIN_DIR/ffprobe"
+  chmod 755 "$BIN_DIR/ffmpeg" "$BIN_DIR/ffprobe"
   echo "ffmpeg and ffprobe installed"
 fi
 
