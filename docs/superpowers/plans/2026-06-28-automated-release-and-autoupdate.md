@@ -660,6 +660,11 @@ These require maintainer action and real credentials; document the outcome but t
 3. **Confirm the GitHub Release** contains both `.dmg` and `.zip`, and that the app is signed (`codesign -dv --verbose=4 <app>`) and notarized (`spctl -a -vvv <app>`).
 4. **Install the prior signed version, then publish a newer one**, and confirm the in-app "Restart to update" dialog appears and applies.
 
+### Pre-first-release checks (flagged by final review — confirm before the first signed release)
+
+5. **Hardened runtime + entitlements for notarization.** `osxSign: {}` relies on `@electron/osx-sign` defaults. Notarization (`notarytool`) rejects apps not built with the hardened runtime, and Electron apps under hardened runtime typically need entitlements (`com.apple.security.cs.allow-jit`, `com.apple.security.cs.allow-unsigned-executable-memory`, and often `com.apple.security.cs.disable-library-validation` for bundled native binaries). After the first signed build, verify `codesign -dv --verbose=4 <app>` shows `flags=…runtime`; if notarization fails or the notarized app crashes on launch, set `osxSign: { optionsForFile: () => ({ hardenedRuntime: true, entitlements: 'resources/entitlements.plist' }) }` and add the entitlements plist. Also confirm the **bundled `yt-dlp`/`ffmpeg`/`ffprobe`/`m4acut`/`AtomicParsley` binaries get signed** (they live under `resources/bin` via `extraResource`) — unsigned nested executables fail notarization. This is the same class of issue the prior `xattr -cr` workaround papered over.
+6. **`main` branch protection vs. the monthly bot push.** `monthly-update.yml` runs `git push origin HEAD:main` as `github-actions[bot]`. If `main` has branch protection (required reviews/checks/linear history), the push is rejected and the monthly release silently no-ops. Confirm the bot is allowed to push to `main` (or add a bypass / route through a PR).
+
 ---
 
 ## Self-review notes
