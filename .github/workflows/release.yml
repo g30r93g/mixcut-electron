@@ -36,7 +36,9 @@ jobs:
 
       - uses: actions/setup-node@v6
         with:
-          node-version: 24
+          # Node 20 LTS: electron-packager's finalize step exits prematurely on
+          # Node 24 when signing widens the async window (electron/forge#3690).
+          node-version: 20
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
@@ -115,11 +117,9 @@ jobs:
       - name: Build DMG and ZIP
         env:
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          # DIAGNOSTIC: notarize creds intentionally omitted to isolate whether the
-          # osxNotarize config is what breaks electron-packager's finalize step.
-          # APPLE_ID: ${{ secrets.APPLE_ID }}
-          # APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          # APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           # Surface signing/notarization progress + errors (Forge otherwise swallows them).
           # NOTE: @electron/osx-sign logs under the legacy `electron-osx-sign` namespace.
           DEBUG: 'electron-osx-sign*,@electron/notarize*,@electron/packager*,electron-packager*'
