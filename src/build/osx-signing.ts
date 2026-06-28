@@ -2,12 +2,38 @@
 // Returns `undefined` when credentials are absent so local builds stay unsigned
 // and never fail.
 
+export interface OsxSignConfig {
+  // Keychain holding the Developer ID identity. In CI the cert is imported into a
+  // temporary keychain; @electron/osx-sign otherwise only searches the default
+  // `login` keychain and silently finds no identity.
+  keychain?: string;
+  // Per-file signing options. Hardened runtime + entitlements are required for
+  // notarization; the entitlements also cover the bundled CLI tools (yt-dlp/ffmpeg).
+  optionsForFile: (filePath: string) => {
+    hardenedRuntime: boolean;
+    entitlements: string;
+  };
+}
+
+export const ENTITLEMENTS_PATH = 'resources/entitlements.plist';
+
 export function osxSignOptions(
   env: NodeJS.ProcessEnv,
-): Record<string, never> | undefined {
-  // Empty object enables @electron/osx-sign with the Developer ID identity that
-  // CI imports into the keychain. Absent cert → skip signing.
-  return env.APPLE_CERTIFICATE ? {} : undefined;
+): OsxSignConfig | undefined {
+  // Absent cert → skip signing so local/unsecured builds stay unsigned and never fail.
+  if (!env.APPLE_CERTIFICATE) return undefined;
+
+  const config: OsxSignConfig = {
+    optionsForFile: () => ({
+      hardenedRuntime: true,
+      entitlements: ENTITLEMENTS_PATH,
+    }),
+  };
+
+  // CI exports the temporary keychain path so signing finds the imported identity.
+  if (env.SIGNING_KEYCHAIN) config.keychain = env.SIGNING_KEYCHAIN;
+
+  return config;
 }
 
 export function osxNotarizeOptions(

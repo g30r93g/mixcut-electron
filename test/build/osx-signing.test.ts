@@ -1,12 +1,31 @@
 import { describe, it, expect } from 'vitest';
-import { osxSignOptions, osxNotarizeOptions } from '../../src/build/osx-signing';
+import {
+  osxSignOptions,
+  osxNotarizeOptions,
+  ENTITLEMENTS_PATH,
+} from '../../src/build/osx-signing';
 
 describe('osxSignOptions', () => {
   it('is undefined without a certificate', () => {
     expect(osxSignOptions({})).toBeUndefined();
   });
-  it('enables signing when a certificate is present', () => {
-    expect(osxSignOptions({ APPLE_CERTIFICATE: 'base64==' })).toEqual({});
+  it('enables hardened runtime + entitlements when a certificate is present', () => {
+    const opts = osxSignOptions({ APPLE_CERTIFICATE: 'base64==' });
+    expect(opts).toBeDefined();
+    const perFile = opts!.optionsForFile('/any/file');
+    expect(perFile.hardenedRuntime).toBe(true);
+    expect(perFile.entitlements).toBe(ENTITLEMENTS_PATH);
+  });
+  it('uses the temporary keychain when SIGNING_KEYCHAIN is set', () => {
+    const opts = osxSignOptions({
+      APPLE_CERTIFICATE: 'base64==',
+      SIGNING_KEYCHAIN: '/tmp/build.keychain',
+    });
+    expect(opts!.keychain).toBe('/tmp/build.keychain');
+  });
+  it('omits keychain when SIGNING_KEYCHAIN is absent', () => {
+    const opts = osxSignOptions({ APPLE_CERTIFICATE: 'base64==' });
+    expect(opts!.keychain).toBeUndefined();
   });
 });
 
