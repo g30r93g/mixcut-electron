@@ -3,6 +3,11 @@ name: Release
 on:
   push:
     tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to build and release (e.g. v2026.6.0)'
+        required: true
 
 env:
   # Pin versions for cache keys — bump these to force a rebuild
@@ -20,6 +25,8 @@ jobs:
       HAS_SIGNING: ${{ secrets.APPLE_CERTIFICATE != '' }}
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
 
       - name: Resolve yt-dlp version
         id: ytdlp
@@ -110,6 +117,7 @@ jobs:
       - name: Upload release
         uses: softprops/action-gh-release@v3
         with:
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
           files: |
             out/make/**/*.dmg
             out/make/zip/darwin/**/*.zip
