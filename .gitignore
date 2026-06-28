@@ -99,3 +99,6 @@ out/
 resources/bin/darwin/yt-dlp
 resources/bin/darwin/ffmpeg
 resources/bin/darwin/ffprobe
+
+# Worktrees
+.worktrees/
