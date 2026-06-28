@@ -21,6 +21,7 @@ jobs:
       - name: Resolve versions
         id: v
         run: |
+          set -euo pipefail
           CURRENT=$(grep -E '^YTDLP_VERSION=' scripts/fetch-binaries.sh | sed -E 's/.*"(.*)".*/\1/')
           LATEST=$(curl -fsSL https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest | grep -oE '"tag_name":\s*"[^"]+"' | head -1 | sed -E 's/.*"([^"]+)"$/\1/')
 
@@ -40,6 +41,7 @@ jobs:
           LATEST: ${{ steps.v.outputs.latest }}
           CURRENT: ${{ steps.v.outputs.current }}
         run: |
+          set -euo pipefail
           NEWER=$(node -e 'import("./scripts/lib/version.mjs").then(m => process.stdout.write(String(m.isNewer(process.env.LATEST, process.env.CURRENT))))')
           echo "newer=$NEWER" >> "$GITHUB_OUTPUT"
           echo "newer=$NEWER"
