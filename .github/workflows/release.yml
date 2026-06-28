@@ -36,9 +36,10 @@ jobs:
 
       - uses: actions/setup-node@v6
         with:
-          # Node 20 LTS: electron-packager's finalize step exits prematurely on
+          # Node 22 (prior LTS): electron-packager's finalize step exits prematurely on
           # Node 24 when signing widens the async window (electron/forge#3690).
-          node-version: 20
+          # Node 20 is too old — pnpm 11.9 requires Node >= 22.13.
+          node-version: 22
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
