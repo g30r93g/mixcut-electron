@@ -99,6 +99,7 @@ export async function downloadAudio(
       activeDownload = { process: child, tempDir };
 
       let stdoutData = '';
+      let stderrData = '';
 
       child.stdout.on('data', (chunk: Buffer) => {
         stdoutData += chunk.toString();
@@ -106,6 +107,7 @@ export async function downloadAudio(
 
       child.stderr.on('data', (chunk: Buffer) => {
         const text = chunk.toString();
+        stderrData += text;
         for (const line of text.split('\n')) {
           const percent = parseDownloadPercent(line);
           if (percent !== null) {
@@ -122,7 +124,22 @@ export async function downloadAudio(
 
       child.on('close', async (code) => {
         if (code !== 0) {
-          reject(new Error(`yt-dlp exited with code ${code}`));
+          // Surface yt-dlp's own diagnostics: the last ERROR line if present,
+          // otherwise the tail of stderr.
+          const errorLine = stderrData
+            .split('\n')
+            .reverse()
+            .find((l) => l.startsWith('ERROR:'));
+          const detail = errorLine
+            ? errorLine.replace(/^ERROR:\s*/, '')
+            : stderrData.trim().split('\n').slice(-3).join('\n');
+          reject(
+            new Error(
+              detail
+                ? `yt-dlp failed (exit ${code}): ${detail}`
+                : `yt-dlp exited with code ${code}`,
+            ),
+          );
           return;
         }
 
