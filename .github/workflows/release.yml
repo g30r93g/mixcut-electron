@@ -121,11 +121,8 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          # Surface signing/notarization progress + errors (Forge otherwise swallows them).
-          # NOTE: @electron/osx-sign logs under the legacy `electron-osx-sign` namespace.
-          DEBUG: 'electron-osx-sign*,@electron/notarize*,@electron/packager*,electron-packager*'
-          # Make a swallowed promise rejection in the sign/notarize chain crash loudly
-          # instead of letting `make` exit 0 with no distributables.
+          # Surface a swallowed promise rejection in the sign/notarize chain instead of
+          # letting `make` exit 0 with no distributables.
           NODE_OPTIONS: '--unhandled-rejections=strict'
         run: pnpm run make
 
