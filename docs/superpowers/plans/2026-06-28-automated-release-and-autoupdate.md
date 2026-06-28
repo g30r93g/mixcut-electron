@@ -493,12 +493,55 @@ git commit -m "ci: sign+notarize releases, publish zip, single-source yt-dlp ver
 **Files:**
 - Create: `scripts/next-version.mjs`
 - Create: `.github/workflows/monthly-update.yml`
+- Modify: `.github/workflows/release.yml` (add a `workflow_dispatch` trigger so the monthly job can launch it)
+
+**Design note — why `workflow_dispatch`:** GitHub Actions deliberately does **not** trigger workflows from a `push` (or tag push) made with the default `GITHUB_TOKEN` (anti-recursion). So the monthly job cannot rely on its pushed tag firing `release.yml`. Instead, `release.yml` gains a `workflow_dispatch` trigger (a documented exception that **does** run under `GITHUB_TOKEN`), and the monthly job calls it via `gh workflow run` after creating the tag. No extra PAT secret is required.
 
 **Interfaces:**
-- Consumes: `scripts/lib/version.mjs` (`isNewer`, `computeCalVer`); `scripts/fetch-binaries.sh` `YTDLP_VERSION`; `package.json` `version`.
-- Produces: when a newer yt-dlp exists, a commit bumping the pin + `package.json` version and a pushed `v<version>` tag (which triggers `release.yml`).
+- Consumes: `scripts/lib/version.mjs` (`isNewer`, `computeCalVer`); `scripts/fetch-binaries.sh` `YTDLP_VERSION`; `package.json` `version`; `release.yml` (`workflow_dispatch` with a `tag` input).
+- Produces: when a newer yt-dlp exists, a commit bumping the pin + `package.json` version, a pushed `v<version>` tag, and a `gh workflow run release.yml -f tag=v<version>` dispatch that builds and publishes that tag.
 
-- [ ] **Step 1: Write the next-version CLI**
+- [ ] **Step 1: Add a `workflow_dispatch` trigger to `release.yml`**
+
+In `.github/workflows/release.yml`, change the `on:` block so the workflow can be launched manually / by the monthly job with an explicit tag, while still working for direct tag pushes:
+
+```yaml
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to build and release (e.g. v2026.6.0)'
+        required: true
+```
+
+Make the checkout build the dispatched tag (falls back to the pushed ref for the `push` path). Change the existing `- uses: actions/checkout@v6` step to:
+
+```yaml
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+```
+
+Give the `Upload release` step an explicit `tag_name` (the dispatch path has no tag ref to auto-detect; the push path falls back to `github.ref_name`):
+
+```yaml
+      - name: Upload release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          files: |
+            out/make/**/*.dmg
+            out/make/zip/darwin/**/*.zip
+```
+
+- [ ] **Step 2: Validate `release.yml` syntax**
+
+Run: `python3 -c "import yaml; yaml.safe_load(open('.github/workflows/release.yml')); print('YAML OK')"`
+Expected: `YAML OK`.
+
+- [ ] **Step 3: Write the next-version CLI**
 
 Create `scripts/next-version.mjs`:
 
@@ -513,12 +556,12 @@ const now = new Date();
 process.stdout.write(computeCalVer(pkg.version, now.getFullYear(), now.getMonth() + 1));
 ```
 
-- [ ] **Step 2: Verify the CLI prints a CalVer string**
+- [ ] **Step 4: Verify the CLI prints a CalVer string**
 
 Run: `node scripts/next-version.mjs`
 Expected: a string like `2026.6.0` (current year.month.0, given the current `0.3.1` version). No leading zero on the month.
 
-- [ ] **Step 3: Write the monthly workflow**
+- [ ] **Step 5: Write the monthly workflow**
 
 Create `.github/workflows/monthly-update.yml`:
 
@@ -534,7 +577,8 @@ jobs:
   refresh:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: write   # push the bump commit + tag
+      actions: write    # gh workflow run (dispatch release.yml)
     steps:
       - uses: actions/checkout@v6
 
@@ -558,8 +602,10 @@ jobs:
           echo "newer=$NEWER" >> "$GITHUB_OUTPUT"
           echo "newer=$NEWER"
 
-      - name: Bump, commit, and tag
+      - name: Bump, commit, tag, and dispatch release
         if: steps.decide.outputs.newer == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           NEW_VERSION=$(node scripts/next-version.mjs)
@@ -578,14 +624,17 @@ jobs:
           git tag "v$NEW_VERSION"
           git push origin HEAD:main
           git push origin "v$NEW_VERSION"
+
+          # GITHUB_TOKEN tag pushes don't trigger release.yml; dispatch it explicitly.
+          gh workflow run release.yml --ref main -f tag="v$NEW_VERSION"
 ```
 
-- [ ] **Step 4: Validate workflow syntax locally**
+- [ ] **Step 6: Validate workflow syntax locally**
 
 Run: `python3 -c "import yaml; yaml.safe_load(open('.github/workflows/monthly-update.yml')); print('YAML OK')"`
 Expected: `YAML OK`.
 
-- [ ] **Step 5: Dry-run the decision logic locally**
+- [ ] **Step 7: Dry-run the decision logic locally**
 
 Run:
 ```bash
@@ -593,11 +642,11 @@ node -e "import('./scripts/lib/version.mjs').then(m=>{console.log('newer(new,old
 ```
 Expected: `newer(new,old)= true` then `newer(same)= false`.
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 8: Commit**
 
 ```bash
-git add scripts/next-version.mjs .github/workflows/monthly-update.yml
-git commit -m "ci: monthly scheduled yt-dlp refresh that cuts a release when changed"
+git add scripts/next-version.mjs .github/workflows/monthly-update.yml .github/workflows/release.yml
+git commit -m "ci: monthly scheduled yt-dlp refresh that dispatches a release when changed"
 ```
 
 ---
@@ -607,7 +656,7 @@ git commit -m "ci: monthly scheduled yt-dlp refresh that cuts a release when cha
 These require maintainer action and real credentials; document the outcome but they are out of band for automated CI:
 
 1. **Configure GitHub Actions secrets:** `APPLE_CERTIFICATE` (base64 `.p12`), `APPLE_CERTIFICATE_PASSWORD`, `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID`.
-2. **Trigger `monthly-update.yml` manually** (`workflow_dispatch`) to confirm it detects a newer yt-dlp, bumps, tags, and that the tag triggers `release.yml`.
+2. **Trigger `monthly-update.yml` manually** (`workflow_dispatch`) to confirm it detects a newer yt-dlp, bumps, tags, and that its `gh workflow run` dispatch starts `release.yml` for the new tag.
 3. **Confirm the GitHub Release** contains both `.dmg` and `.zip`, and that the app is signed (`codesign -dv --verbose=4 <app>`) and notarized (`spctl -a -vvv <app>`).
 4. **Install the prior signed version, then publish a newer one**, and confirm the in-app "Restart to update" dialog appears and applies.
 
