@@ -102,3 +102,6 @@ resources/bin/darwin/ffprobe
 
 # Worktrees
 .worktrees/
+
+# Apple Signing Certificate
+*.p12
