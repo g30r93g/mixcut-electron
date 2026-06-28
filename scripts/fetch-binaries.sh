@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Pinned versions — bump these to update
-YTDLP_VERSION="2025.12.08"
+YTDLP_VERSION="2026.06.09"
 
 BIN_DIR="$(cd "$(dirname "$0")/../resources/bin/darwin" && pwd)"
 mkdir -p "$BIN_DIR"
