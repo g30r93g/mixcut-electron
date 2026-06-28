@@ -96,6 +96,7 @@ jobs:
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
         run: |
+          set -euo pipefail
           KEYCHAIN=$RUNNER_TEMP/build.keychain
           KEYCHAIN_PASSWORD=$(openssl rand -base64 24)
           security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
@@ -106,6 +107,10 @@ jobs:
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
           security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | tr -d '"')
           rm -f "$RUNNER_TEMP/cert.p12"
+          # Confirm the Developer ID identity is actually present + visible to codesign.
+          security find-identity -v -p codesigning "$KEYCHAIN"
+          # Expose the keychain to the signing config (osx-sign otherwise only checks login.keychain).
+          echo "SIGNING_KEYCHAIN=$KEYCHAIN" >> "$GITHUB_ENV"
 
       - name: Build DMG and ZIP
         env:
@@ -113,12 +118,29 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          # Surface signing/notarization progress + errors (Forge otherwise swallows them).
+          DEBUG: '@electron/osx-sign*,@electron/notarize*,electron-notarize*'
         run: pnpm run make
+
+      - name: Verify build produced artifacts
+        run: |
+          set -euo pipefail
+          shopt -s nullglob globstar
+          dmgs=(out/make/**/*.dmg)
+          zips=(out/make/zip/darwin/**/*.zip)
+          echo "Found ${#dmgs[@]} dmg(s): ${dmgs[*]:-none}"
+          echo "Found ${#zips[@]} zip(s): ${zips[*]:-none}"
+          if [ ${#dmgs[@]} -eq 0 ] || [ ${#zips[@]} -eq 0 ]; then
+            echo "::error::make produced no .dmg/.zip — refusing to publish an empty release"
+            echo "--- out/ tree ---"; find out -maxdepth 4 -type f 2>/dev/null || true
+            exit 1
+          fi
 
       - name: Upload release
         uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          fail_on_unmatched_files: true
           files: |
             out/make/**/*.dmg
             out/make/zip/darwin/**/*.zip
