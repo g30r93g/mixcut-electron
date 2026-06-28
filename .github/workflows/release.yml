@@ -3,13 +3,17 @@ name: Release
 on:
   push:
     tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to build and release (e.g. v2026.6.0)'
+        required: true
 
 env:
   # Pin versions for cache keys — bump these to force a rebuild
   LSMASH_REF: master
   M4ACUT_REF: master
   ATOMICPARSLEY_VERSION: '20240608.083822'
-  YTDLP_VERSION: '2025.12.08'
   FFMPEG_VERSION: '8.1'
 
 jobs:
@@ -17,8 +21,16 @@ jobs:
     runs-on: macos-latest
     permissions:
       contents: write
+    env:
+      HAS_SIGNING: ${{ secrets.APPLE_CERTIFICATE != '' }}
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+
+      - name: Resolve yt-dlp version
+        id: ytdlp
+        run: echo "version=$(grep -E '^YTDLP_VERSION=' scripts/fetch-binaries.sh | sed -E 's/.*\"(.*)\".*/\1/')" >> "$GITHUB_OUTPUT"
 
       - uses: pnpm/action-setup@v5
 
@@ -36,7 +48,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: resources/bin/darwin
-          key: native-bins-${{ runner.os }}-${{ runner.arch }}-lsmash-${{ env.LSMASH_REF }}-m4acut-${{ env.M4ACUT_REF }}-ap-${{ env.ATOMICPARSLEY_VERSION }}-ytdlp-${{ env.YTDLP_VERSION }}-ffmpeg-${{ env.FFMPEG_VERSION }}
+          key: native-bins-${{ runner.os }}-${{ runner.arch }}-lsmash-${{ env.LSMASH_REF }}-m4acut-${{ env.M4ACUT_REF }}-ap-${{ env.ATOMICPARSLEY_VERSION }}-ytdlp-${{ steps.ytdlp.outputs.version }}-ffmpeg-${{ env.FFMPEG_VERSION }}
 
       - name: Compile m4acut
         if: steps.native-cache.outputs.cache-hit != 'true'
@@ -66,7 +78,7 @@ jobs:
         if: steps.native-cache.outputs.cache-hit != 'true'
         run: |
           curl -L --fail --retry 3 \
-            "https://github.com/yt-dlp/yt-dlp/releases/download/$YTDLP_VERSION/yt-dlp_macos" \
+            "https://github.com/yt-dlp/yt-dlp/releases/download/${{ steps.ytdlp.outputs.version }}/yt-dlp_macos" \
             -o resources/bin/darwin/yt-dlp
           chmod +x resources/bin/darwin/yt-dlp
 
@@ -78,10 +90,35 @@ jobs:
           cp "$(brew --prefix ffmpeg)/bin/ffprobe" resources/bin/darwin/ffprobe
           chmod 755 resources/bin/darwin/ffmpeg resources/bin/darwin/ffprobe
 
-      - name: Build DMG
+      - name: Import Developer ID certificate
+        if: ${{ env.HAS_SIGNING == 'true' }}
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        run: |
+          KEYCHAIN=$RUNNER_TEMP/build.keychain
+          KEYCHAIN_PASSWORD=$(openssl rand -base64 24)
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security set-keychain-settings -lut 3600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          echo "$APPLE_CERTIFICATE" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security import "$RUNNER_TEMP/cert.p12" -k "$KEYCHAIN" -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | tr -d '"')
+          rm -f "$RUNNER_TEMP/cert.p12"
+
+      - name: Build DMG and ZIP
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: pnpm run make
 
       - name: Upload release
         uses: softprops/action-gh-release@v3
         with:
-          files: out/make/**/*.dmg
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          files: |
+            out/make/**/*.dmg
+            out/make/zip/darwin/**/*.zip

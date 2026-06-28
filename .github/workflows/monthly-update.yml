@@ -1,0 +1,74 @@
+name: Monthly yt-dlp Update
+
+on:
+  schedule:
+    - cron: '0 9 1 * *'   # 09:00 UTC on the 1st of each month
+  workflow_dispatch:
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # push the bump commit + tag
+      actions: write    # gh workflow run (dispatch release.yml)
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Resolve versions
+        id: v
+        run: |
+          set -euo pipefail
+          CURRENT=$(grep -E '^YTDLP_VERSION=' scripts/fetch-binaries.sh | sed -E 's/.*"(.*)".*/\1/')
+          LATEST=$(curl -fsSL https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest | grep -oE '"tag_name":\s*"[^"]+"' | head -1 | sed -E 's/.*"([^"]+)"$/\1/')
+
+          # Validate LATEST matches yt-dlp tag format (YYYY.MM.DD or YYYY.MM.DD.N)
+          if [[ ! "$LATEST" =~ ^[0-9]{4}\.[0-9]{2}\.[0-9]{2}(\.[0-9]+)?$ ]]; then
+            echo "ERROR: LATEST tag '$LATEST' does not match expected yt-dlp format (YYYY.MM.DD or YYYY.MM.DD.N)" >&2
+            exit 1
+          fi
+
+          echo "current=$CURRENT" >> "$GITHUB_OUTPUT"
+          echo "latest=$LATEST" >> "$GITHUB_OUTPUT"
+          echo "Current pin: $CURRENT  Latest: $LATEST"
+
+      - name: Decide whether to release
+        id: decide
+        env:
+          LATEST: ${{ steps.v.outputs.latest }}
+          CURRENT: ${{ steps.v.outputs.current }}
+        run: |
+          set -euo pipefail
+          NEWER=$(node -e 'import("./scripts/lib/version.mjs").then(m => process.stdout.write(String(m.isNewer(process.env.LATEST, process.env.CURRENT))))')
+          echo "newer=$NEWER" >> "$GITHUB_OUTPUT"
+          echo "newer=$NEWER"
+
+      - name: Bump, commit, tag, and dispatch release
+        if: steps.decide.outputs.newer == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          LATEST: ${{ steps.v.outputs.latest }}
+        run: |
+          set -euo pipefail
+          NEW_VERSION=$(node scripts/next-version.mjs)
+          echo "Releasing app version $NEW_VERSION with yt-dlp $LATEST"
+
+          # Re-pin yt-dlp (single source of truth)
+          sed -i -E "s/^YTDLP_VERSION=\".*\"/YTDLP_VERSION=\"$LATEST\"/" scripts/fetch-binaries.sh
+
+          # Bump app version in package.json (no install, no lockfile churn)
+          node -e "const fs=require('fs');const p=require('./package.json');p.version='$NEW_VERSION';fs.writeFileSync('./package.json', JSON.stringify(p,null,2)+'\n');"
+
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add scripts/fetch-binaries.sh package.json
+          git commit -m "chore: bump yt-dlp to $LATEST, release $NEW_VERSION"
+          git tag "v$NEW_VERSION"
+          git push origin HEAD:main
+          git push origin "v$NEW_VERSION"
+
+          # GITHUB_TOKEN tag pushes don't trigger release.yml; dispatch it explicitly.
+          gh workflow run release.yml --ref main -f tag="v$NEW_VERSION"

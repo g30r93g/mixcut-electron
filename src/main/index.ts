@@ -1,6 +1,7 @@
 import { app, BrowserWindow, Menu, protocol, net } from 'electron';
 import path from 'node:path';
 import { registerIpcHandlers } from './ipc-handlers';
+import { initAutoUpdate } from './auto-update';
 
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
 declare const MAIN_WINDOW_VITE_NAME: string;
@@ -43,6 +44,7 @@ protocol.registerSchemesAsPrivileged([
 ]);
 
 app.whenReady().then(() => {
+  initAutoUpdate(app.isPackaged);
   const menu = Menu.buildFromTemplate([
     { role: 'appMenu' },
     { role: 'fileMenu' },
