@@ -119,20 +119,23 @@ jobs:
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           # Surface signing/notarization progress + errors (Forge otherwise swallows them).
-          DEBUG: '@electron/osx-sign*,@electron/notarize*,electron-notarize*'
+          # NOTE: @electron/osx-sign logs under the legacy `electron-osx-sign` namespace.
+          DEBUG: 'electron-osx-sign*,@electron/notarize*,@electron/packager*,electron-packager*'
+          # Make a swallowed promise rejection in the sign/notarize chain crash loudly
+          # instead of letting `make` exit 0 with no distributables.
+          NODE_OPTIONS: '--unhandled-rejections=strict'
         run: pnpm run make
 
       - name: Verify build produced artifacts
         run: |
-          set -euo pipefail
-          shopt -s nullglob globstar
-          dmgs=(out/make/**/*.dmg)
-          zips=(out/make/zip/darwin/**/*.zip)
-          echo "Found ${#dmgs[@]} dmg(s): ${dmgs[*]:-none}"
-          echo "Found ${#zips[@]} zip(s): ${zips[*]:-none}"
-          if [ ${#dmgs[@]} -eq 0 ] || [ ${#zips[@]} -eq 0 ]; then
+          set -uo pipefail
+          dmg="$(find out/make -name '*.dmg' -type f 2>/dev/null | head -1)"
+          zip="$(find out/make -name '*.zip' -type f 2>/dev/null | head -1)"
+          echo "dmg: ${dmg:-none}"
+          echo "zip: ${zip:-none}"
+          if [ -z "$dmg" ] || [ -z "$zip" ]; then
             echo "::error::make produced no .dmg/.zip — refusing to publish an empty release"
-            echo "--- out/ tree ---"; find out -maxdepth 4 -type f 2>/dev/null || true
+            echo "--- out/ tree ---"; find out -maxdepth 5 2>/dev/null | head -80 || true
             exit 1
           fi
 
