@@ -7,12 +7,15 @@ import { MakerDMG } from '@electron-forge/maker-dmg';
 import { VitePlugin } from '@electron-forge/plugin-vite';
 import { FusesPlugin } from '@electron-forge/plugin-fuses';
 import { FuseV1Options, FuseVersion } from '@electron/fuses';
+import { osxSignOptions, osxNotarizeOptions } from './src/build/osx-signing';
 
 const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
     icon: 'resources/icon',
     extraResource: ['resources/bin'],
+    osxSign: osxSignOptions(process.env),
+    osxNotarize: osxNotarizeOptions(process.env),
   },
   rebuildConfig: {},
   makers: [
