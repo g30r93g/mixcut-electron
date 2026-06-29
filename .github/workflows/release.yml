@@ -14,7 +14,9 @@ env:
   LSMASH_REF: master
   M4ACUT_REF: master
   ATOMICPARSLEY_VERSION: '20240608.083822'
-  FFMPEG_VERSION: '8.1'
+  # Static, self-contained build id — see scripts/fetch-binaries.sh (FFMPEG_BUILD).
+  # Bump this whenever that pin changes so the native-binary cache invalidates.
+  FFMPEG_VERSION: '1781693612_N-125070-gd69e8d0a95'
 
 jobs:
   build:
@@ -87,11 +89,19 @@ jobs:
 
       - name: Install ffmpeg and ffprobe
         if: steps.native-cache.outputs.cache-hit != 'true'
-        run: |
-          brew install ffmpeg
-          cp "$(brew --prefix ffmpeg)/bin/ffmpeg" resources/bin/darwin/ffmpeg
-          cp "$(brew --prefix ffmpeg)/bin/ffprobe" resources/bin/darwin/ffprobe
-          chmod 755 resources/bin/darwin/ffmpeg resources/bin/darwin/ffprobe
+        # Static, self-contained build (NOT Homebrew — its dylibs live outside the
+        # .app and would make yt-dlp report "ffprobe and ffmpeg not found" on user
+        # machines). Pin + checksums live in scripts/fetch-binaries.sh.
+        run: bash scripts/fetch-binaries.sh ffmpeg
+
+      - name: Validate bundled binaries are self-contained
+        # Now that every binary is provisioned (fresh or from cache), assert each
+        # is present, arm64, and links nothing outside the system frameworks —
+        # before we sign and package. REQUIRE_BUNDLED_BINARIES makes absence fatal
+        # here (in the fast unit lane these are gitignored, so the checks skip).
+        env:
+          REQUIRE_BUNDLED_BINARIES: '1'
+        run: npx vitest run test/build/bundled-binaries.test.ts
 
       - name: Import Developer ID certificate
         if: ${{ env.HAS_SIGNING == 'true' }}
