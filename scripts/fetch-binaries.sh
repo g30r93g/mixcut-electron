@@ -49,8 +49,11 @@ fetch_ytdlp() {
 # no library dependencies outside the system frameworks, then install it.
 fetch_static_bin() {
   local name="$1" expected="$2"
+  # A `trap ... RETURN` set here is NOT scoped to this function (bash only scopes
+  # RETURN traps under `set -o functrace`); it would also fire on the caller's
+  # return, where this local $tmp is out of scope and trips `set -u`. So clean up
+  # explicitly instead — on every error path and at the end.
   local tmp; tmp="$(mktemp -d)"
-  trap 'rm -rf "$tmp"' RETURN
 
   echo "Downloading $name (static)..."
   curl -L --fail --retry 3 "$FFMPEG_BASE/$name.zip" -o "$tmp/$name.zip"
@@ -58,21 +61,22 @@ fetch_static_bin() {
   local actual; actual="$(shasum -a 256 "$tmp/$name.zip" | awk '{print $1}')"
   if [ "$actual" != "$expected" ]; then
     echo "Error: checksum mismatch for $name (expected $expected, got $actual)" >&2
-    exit 1
+    rm -rf "$tmp"; exit 1
   fi
 
   unzip -oq "$tmp/$name.zip" -d "$tmp"
   if [ "$(lipo -archs "$tmp/$name")" != "arm64" ]; then
     echo "Error: $name is not arm64" >&2
-    exit 1
+    rm -rf "$tmp"; exit 1
   fi
   if ! is_self_contained "$tmp/$name"; then
     echo "Error: $name has library dependencies outside the system frameworks" >&2
     otool -L "$tmp/$name" | tail -n +2 | grep -v '/usr/lib/\|/System/' >&2
-    exit 1
+    rm -rf "$tmp"; exit 1
   fi
 
   install -m 0755 "$tmp/$name" "$BIN_DIR/$name"
+  rm -rf "$tmp"
 }
 
 fetch_ffmpeg() {
