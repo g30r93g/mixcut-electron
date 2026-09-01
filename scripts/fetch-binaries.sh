@@ -14,7 +14,7 @@ set -euo pipefail
 # "ffprobe and ffmpeg not found". We therefore fetch a static ffmpeg/ffprobe.
 
 # --- Pinned versions — bump these to update ---
-YTDLP_VERSION="2026.07.04"
+YTDLP_VERSION="2026.08.19"
 # Static, self-contained arm64 build from https://ffmpeg.martin-riedl.de
 FFMPEG_BUILD="1781693612_N-125070-gd69e8d0a95"
 FFMPEG_BASE="https://ffmpeg.martin-riedl.de/download/macos/arm64/${FFMPEG_BUILD}"
